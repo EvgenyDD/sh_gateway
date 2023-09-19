@@ -102,3 +102,16 @@ debug:
 	@echo "set confirm off" >> .gdbinit
 	@echo "target remote | openocd -c \"gdb_port pipe\" -f ../target/stm32f4xx.cfg" >> .gdbinit
 	@arm-none-eabi-gdb -q -x .gdbinit
+
+define tftp_flash
+	@atftp --verbose -p -r sh_gw_ldr -l $(2) 192.168.0.$(1)
+endef
+
+101: $(SIGNED_BINARY)
+	$(call tftp_flash,$@,$(BUILDDIR)/$(SIGNED_BINARY))
+102: $(SIGNED_BINARY)
+	$(call tftp_flash,$@,$(BUILDDIR)/$(SIGNED_BINARY))
+103: $(SIGNED_BINARY)
+	$(call tftp_flash,$@,$(BUILDDIR)/$(SIGNED_BINARY))
+200: $(SIGNED_BINARY)
+	$(call tftp_flash,$@,$(BUILDDIR)/$(SIGNED_BINARY))

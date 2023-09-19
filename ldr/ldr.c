@@ -124,7 +124,7 @@ void main(void)
 		static uint32_t difff = 0;
 		difff += diff_ms;
 		if(difff > 100) difff = 0;
-		if(difff < (LwIP_is_link_up() ? 150 : 7))
+		if(difff < (LwIP_is_link_up() ? 60 : 7))
 		{
 			GPIOE->ODR |= (1 << 4);
 		}

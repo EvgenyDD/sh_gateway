@@ -132,3 +132,20 @@ debug:
 	@echo "set confirm off" >> .gdbinit
 	@echo "target remote | openocd -c \"gdb_port pipe\" -f target/stm32f4xx.cfg" >> .gdbinit
 	@arm-none-eabi-gdb -q -x .gdbinit
+
+define tftp_flash
+	@echo reset | nc -u 192.168.0.$(1) 2000 -q 0
+	@sleep 2.0
+	@echo help | nc -u 192.168.0.$(1) 2000 -q 0
+	@atftp --verbose -p -r sh_gw_app -l $(2) 192.168.0.$(1)
+	@echo reset | nc -u 192.168.0.$(1) 2000 -q 0
+endef
+
+101: $(BINARY_SIGNED)
+	$(call tftp_flash,$@,$<)
+102: $(BINARY_SIGNED)
+	$(call tftp_flash,$@,$<)
+103: $(BINARY_SIGNED)
+	$(call tftp_flash,$@,$<)
+200: $(BINARY_SIGNED)
+	$(call tftp_flash,$@,$<)
