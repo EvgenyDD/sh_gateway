@@ -1,0 +1,27 @@
+#ifndef SHMQ_H__
+#define SHMQ_H__
+
+// uint8
+enum
+{
+	SHMQ_MT_BIT_IN = 0,
+	SHMQ_MT_BIT_OUT = 1,
+	SHMQ_MT_U8_IN = 2,
+	SHMQ_MT_U8_OUT = 3,
+	SHMQ_MT_U16_IN = 4,
+	SHMQ_MT_U16_OUT = 5,
+	SHMQ_MT_U32_IN = 6,
+	SHMQ_MT_U32_OUT = 7,
+	SHMQ_MT_U64_IN = 8,
+	SHMQ_MT_U64_OUT = 9,
+	SHMQ_MT_FLOAT_IN = 10,
+	SHMQ_MT_FLOAT_OUT = 11,
+	SHMQ_MT_DOUBLE_IN = 12,
+	SHMQ_MT_DOUBLE_OUT = 13,
+	SHMQ_MT_STRING_IN = 14,
+	SHMQ_MT_STRING_OUT = 15,
+
+	SHMQ_MT_TD = 16, // u64 time in ms since 1 Jan 1900 00:00:00
+}
+
+#endif // SHMQ_H__
