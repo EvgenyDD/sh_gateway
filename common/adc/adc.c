@@ -3,8 +3,8 @@
 
 enum
 {
-	ADC_CH_VIN = 0,
-	ADC_CH_VOUT,
+	ADC_CH_VOUT = 0,
+	ADC_CH_VIN,
 	ADC_CH_IR,
 	ADC_CH_I_SNS,
 	ADC_CH,

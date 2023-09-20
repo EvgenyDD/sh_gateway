@@ -3,7 +3,7 @@
 #include "stm32f4xx.h"
 #include <stdbool.h>
 
-#define TIMEOUT_ON_MS 0
+#define TIMEOUT_ON_MS 200
 
 static bool enabled = false;
 static uint32_t timeout_on_ms = 0;
