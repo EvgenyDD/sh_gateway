@@ -126,6 +126,25 @@ int sdo_wr_cb(const char *arg, int l)
 	return CON_CB_SILENT;
 }
 
+int can_role_cb(const char *arg, int l)
+{
+	unsigned int id = 0, new_role;
+	int n = sscanf(arg, "%d %x", &id, &new_role);
+	if(n != 2)
+	{
+		_PRINTF("Wrong format!\n");
+		return CON_CB_SILENT;
+	}
+	CO_SDO_abortCode_t sts = write_SDO(CO->SDOclient, id, 0x1000, 0, (uint8_t *)&new_role, sizeof(uint32_t), 800);
+	if(sts != 0)
+	{
+		_PRINTF("SDO write %d abort: x%x\n", id, sts);
+		return CON_CB_SILENT;
+	}
+	_PRINTF("New %d role x%x OK\n", id, new_role);
+	return CON_CB_SILENT;
+}
+
 int can_save_cb(const char *arg, int l)
 {
 	unsigned int id = 0;
@@ -345,5 +364,75 @@ int can_baud_cb(const char *arg, int l)
 	lss_helper_deselect();
 
 	_PRINTF("OK\n");
+	return CON_CB_SILENT;
+}
+
+#define RSDO(ID, IDX, SUBIDX, VAL)                                                          \
+	rd = sizeof(VAL);                                                                       \
+	sts = read_SDO(CO->SDOclient, ID, IDX, SUBIDX, (uint8_t *)&VAL, sizeof(VAL), &rd, 800); \
+	if(sts != 0 || rd != sizeof(VAL))                                                       \
+	{                                                                                       \
+		_PRINTF("SDO read %d abort: x%x\n", id, sts);                                       \
+		return CON_CB_SILENT;                                                               \
+	}
+
+int can_meteo_cb(const char *arg, int l)
+{
+	unsigned int id = 0;
+	int n = sscanf(arg, "%d", &id);
+	if(n != 1)
+	{
+		_PRINTF("Wrong format!\n");
+		return CON_CB_SILENT;
+	}
+
+	CO_SDO_abortCode_t sts;
+	size_t rd;
+	uint8_t v_u8;
+	int16_t v_i16;
+	uint16_t v_u16;
+	int32_t v_i32;
+	uint32_t v_u32;
+	_PRINTF("ADC: ");
+	for(uint32_t i = 0x01; i <= 0x09; i++)
+	{
+		RSDO(id, 0x6000, i, v_i16);
+		_PRINTF("%04d ", v_i16);
+	}
+
+	_PRINTF("\nGPS: ");
+
+	RSDO(id, 0x6100, 1, v_u16);
+	_PRINTF("%d/", v_u16);
+	RSDO(id, 0x6100, 2, v_u8);
+	_PRINTF("%d/", v_u8);
+	RSDO(id, 0x6100, 3, v_u8);
+	_PRINTF("%d ", v_u8);
+
+	RSDO(id, 0x6100, 4, v_u8);
+	_PRINTF("%d:", v_u8);
+	RSDO(id, 0x6100, 5, v_u8);
+	_PRINTF("%d:", v_u8);
+	RSDO(id, 0x6100, 6, v_u8);
+	_PRINTF("%d ", v_u8);
+
+	_PRINTF("\nBaro: ");
+	RSDO(id, 0x6101, 1, v_u32);
+	_PRINTF("%d | Temp: ", v_u32);
+	RSDO(id, 0x6101, 2, v_i16);
+	_PRINTF("%d\n", v_i16);
+
+	_PRINTF("\nMeteo: WindA ");
+	RSDO(id, 0x6102, 1, v_u32);
+	_PRINTF("%d Head: ", v_u32);
+	RSDO(id, 0x6102, 2, v_u16);
+	_PRINTF("%d RainA: ", v_u16);
+	RSDO(id, 0x6102, 3, v_u32);
+	_PRINTF("%d Temp: ", v_u32);
+	RSDO(id, 0x6102, 4, v_i16);
+	_PRINTF("%d Solar: ", v_i16);
+	RSDO(id, 0x6102, 6, v_i16);
+	_PRINTF("%d\n", v_i16);
+
 	return CON_CB_SILENT;
 }

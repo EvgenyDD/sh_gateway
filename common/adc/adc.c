@@ -83,6 +83,6 @@ void adc_track(void)
 {
 	adc_val.vin = (float)adc_buf[ADC_CH_VIN] / 4095.0f * 3.3f * (1.0f + 100.0f / 10.0f);
 	adc_val.vout = (float)adc_buf[ADC_CH_VOUT] / 4095.0f * 3.3f * (1.0f + 100.0f / 10.0f);
-	adc_val.i_sns = (float)(adc_buf[ADC_CH_I_SNS] - 2048) / (0.002f * 20.0f / 1.65f * 2048.0f);
+	adc_val.i_sns = (float)(adc_buf[ADC_CH_I_SNS] - 2048) / (0.02f * 20.0f / 3.3f * 4095.0f); // 2mA quant
 	adc_val.ir = adc_buf[ADC_CH_IR];
 }

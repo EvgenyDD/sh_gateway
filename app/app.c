@@ -20,6 +20,8 @@
 #include "ret_mem.h"
 #include "spi_common.h"
 
+extern void pooool(void);
+
 #define SYSTICK_IN_US (168000000 / 1000000)
 #define SYSTICK_IN_MS (168000000 / 1000)
 
@@ -242,6 +244,8 @@ void main(void)
 				{
 					_PRINTF("FAULT! Load Switcher!\n");
 				}
+
+				pooool();
 			}
 		}
 

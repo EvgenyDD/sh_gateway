@@ -162,6 +162,21 @@ int pc_cb(const char *arg, int l)
 	return CON_CB_SILENT;
 }
 
+float ir_min = 4096, ir_max = 0;
+void pooool(void)
+{
+	if(ir_min > adc_val.ir) ir_min = adc_val.ir;
+	if(ir_max < adc_val.ir) ir_max = adc_val.ir;
+}
+
+int ir_cb(const char *arg, int l)
+{
+	_PRINTF("IR min is %d | max is %d\n", ir_min, ir_max);
+	ir_min = 4096;
+	ir_max = 0;
+	return CON_CB_SILENT;
+}
+
 const console_cmd_t console_cmd[] = {
 	{"fw", fw_cb},
 	{"reset", reset_cb},
@@ -185,6 +200,12 @@ const console_cmd_t console_cmd[] = {
 	{"cid", can_id_cb},
 	{"cemcy", can_emcy_cb},
 	{"cbaud", can_baud_cb},
+
+	{"crole", can_role_cb},
+
+	{"cmeteo", can_meteo_cb},
+
+	{"ir", ir_cb},
 };
 
 const uint32_t console_cmd_sz = sizeof(console_cmd) / sizeof(console_cmd[0]);

@@ -16,11 +16,11 @@
 
         Created:      23/11/2020 14:00:00
         Created By:   
-        Modified:     11/09/2023 1:46:06
+        Modified:     23/09/2023 12:40:43
         Modified By:  
 
     Device Info:
-        Vendor Name:  Rozum
+        Vendor Name:  Home
         Vendor ID:    
         Product Name: GW
         Product ID:   
