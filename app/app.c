@@ -1,6 +1,7 @@
 #include "CANopen.h"
 #include "CO_driver_app.h"
 #include "CO_driver_storage.h"
+#include "emeter.h"
 #include "OD.h"
 #include "adc.h"
 #include "can_driver.h"
@@ -140,6 +141,7 @@ void main(void)
 	LwIP_init();
 	console_udp_init();
 	tftpd_init();
+	emeter_init();
 
 	can_drv_init(CAN1);
 
@@ -240,6 +242,7 @@ void main(void)
 				}
 				adc_track();
 				pc_poll(diff_ms);
+				emeter_poll(diff_ms);
 				if(load_switcher_poll(diff_ms))
 				{
 					_PRINTF("FAULT! Load Switcher!\n");

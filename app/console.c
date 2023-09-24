@@ -3,6 +3,7 @@
 #include "adc.h"
 #include "can_driver.h"
 #include "config_system.h"
+#include "emeter.h"
 #include "eth/netconf.h"
 #include "eth_con/console_udp.h"
 #include "ethernetif.h"
@@ -171,9 +172,15 @@ void pooool(void)
 
 int ir_cb(const char *arg, int l)
 {
-	_PRINTF("IR min is %d | max is %d\n", ir_min, ir_max);
+	_PRINTF("IR min is %.1f | max is %.1f\n", ir_min, ir_max);
 	ir_min = 4096;
 	ir_max = 0;
+	return CON_CB_SILENT;
+}
+
+int energy_cb(const char *arg, int l)
+{
+	_PRINTF("Energy: %.3f | Power: %.3f\n", emeter_get_energy_kwh(), emeter_get_power_kw());
 	return CON_CB_SILENT;
 }
 
@@ -206,6 +213,7 @@ const console_cmd_t console_cmd[] = {
 	{"cmeteo", can_meteo_cb},
 
 	{"ir", ir_cb},
+	{"energy", energy_cb},
 };
 
 const uint32_t console_cmd_sz = sizeof(console_cmd) / sizeof(console_cmd[0]);
