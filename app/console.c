@@ -14,6 +14,7 @@
 #include "pc.h"
 #include "platform.h"
 #include "sdo.h"
+#include "sock_cli.h"
 #include <ctype.h>
 #include <stdio.h>
 #include <string.h>
@@ -169,6 +170,15 @@ int energy_cb(const char *arg, int l)
 	return CON_CB_SILENT;
 }
 
+static struct tcp_pcb cc_sock;
+int cli_cb(const char *arg, int l)
+{
+	uint8_t ipaddr[] = {7, 7, 7, 1};
+	int sts = sock_cli_init(&cc_sock, ipaddr, 5000);
+	_PRINTF("STS: %d\n", sts);
+	return CON_CB_OK;
+}
+
 const console_cmd_t console_cmd[] = {
 	{"fw", fw_cb},
 	{"reset", reset_cb},
@@ -198,6 +208,7 @@ const console_cmd_t console_cmd[] = {
 	{"cmeteo", can_meteo_cb},
 
 	{"energy", energy_cb},
+	{"cli", cli_cb},
 };
 
 const uint32_t console_cmd_sz = sizeof(console_cmd) / sizeof(console_cmd[0]);

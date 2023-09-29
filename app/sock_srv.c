@@ -1,4 +1,4 @@
-#include "sock_master.h"
+#include "sock_srv.h"
 #include "lwip/debug.h"
 #include "lwip/stats.h"
 
@@ -180,7 +180,7 @@ static err_t tcp_echoserver_accept(void *arg, struct tcp_pcb *newpcb, err_t err)
 	}
 }
 
-int sock_master_init(struct tcp_pcb *inst, int port)
+int sock_srv_init(struct tcp_pcb *inst, int port)
 {
 	inst = tcp_new();
 	if(inst != NULL)

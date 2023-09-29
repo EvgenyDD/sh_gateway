@@ -1,12 +1,12 @@
 #include "CANopen.h"
 #include "CO_driver_app.h"
 #include "CO_driver_storage.h"
-#include "emeter.h"
 #include "OD.h"
 #include "adc.h"
 #include "can_driver.h"
 #include "config_system.h"
 #include "crc.h"
+#include "emeter.h"
 #include "eth/netconf.h"
 #include "eth/tftp_server.h"
 #include "eth_con/console_udp.h"
@@ -19,7 +19,8 @@
 #include "platform.h"
 #include "prof.h"
 #include "ret_mem.h"
-#include "sock_master.h"
+#include "sock_cli.h"
+#include "sock_srv.h"
 #include "spi_common.h"
 
 #define SYSTICK_IN_US (168000000 / 1000000)
@@ -142,7 +143,7 @@ void main(void)
 	LwIP_init();
 	console_udp_init();
 	tftpd_init();
-	sock_master_init(&c_sock, 5000);
+	sock_srv_init(&c_sock, 5000);
 	emeter_init();
 
 	can_drv_init(CAN1);
