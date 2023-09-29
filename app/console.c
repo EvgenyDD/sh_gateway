@@ -178,6 +178,11 @@ int cli_cb(const char *arg, int l)
 	_PRINTF("STS: %d\n", sts);
 	return CON_CB_OK;
 }
+int sli_cb(const char *arg, int l)
+{
+	_PRINTF("flags: %d\n", cc_sock.flags);
+	return CON_CB_OK;
+}
 
 const console_cmd_t console_cmd[] = {
 	{"fw", fw_cb},
@@ -209,6 +214,7 @@ const console_cmd_t console_cmd[] = {
 
 	{"energy", energy_cb},
 	{"cli", cli_cb},
+	{"sli", sli_cb},
 };
 
 const uint32_t console_cmd_sz = sizeof(console_cmd) / sizeof(console_cmd[0]);
