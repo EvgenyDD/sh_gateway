@@ -3,6 +3,7 @@
 #include "adc.h"
 #include "can_driver.h"
 #include "config_system.h"
+#include "emeter.h"
 #include "eth/netconf.h"
 #include "eth_con/console_udp.h"
 #include "ethernetif.h"
@@ -162,6 +163,12 @@ int pc_cb(const char *arg, int l)
 	return CON_CB_SILENT;
 }
 
+int energy_cb(const char *arg, int l)
+{
+	_PRINTF("Energy: %.3f | Power: %.3f\n", emeter_get_energy_kwh(), emeter_get_power_kw());
+	return CON_CB_SILENT;
+}
+
 const console_cmd_t console_cmd[] = {
 	{"fw", fw_cb},
 	{"reset", reset_cb},
@@ -189,6 +196,8 @@ const console_cmd_t console_cmd[] = {
 	{"crole", can_role_cb},
 
 	{"cmeteo", can_meteo_cb},
+
+	{"energy", energy_cb},
 };
 
 const uint32_t console_cmd_sz = sizeof(console_cmd) / sizeof(console_cmd[0]);

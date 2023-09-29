@@ -376,6 +376,15 @@ int can_baud_cb(const char *arg, int l)
 		return CON_CB_SILENT;                                                               \
 	}
 
+#define RSDO_T(ID, IDX, SUBIDX, VAL, TYPE)                                                          \
+	rd = sizeof(TYPE);                                                                       \
+	sts = read_SDO(CO->SDOclient, ID, IDX, SUBIDX, (uint8_t *)&VAL, sizeof(TYPE), &rd, 800); \
+	if(sts != 0 || rd != sizeof(TYPE))                                                       \
+	{                                                                                       \
+		_PRINTF("SDO read %d abort: x%x (x%x:x%x)\n", id, sts, IDX, SUBIDX);                                       \
+		return CON_CB_SILENT;                                                               \
+	}
+
 int can_meteo_cb(const char *arg, int l)
 {
 	unsigned int id = 0;
@@ -414,24 +423,78 @@ int can_meteo_cb(const char *arg, int l)
 	RSDO(id, 0x6100, 5, v_u8);
 	_PRINTF("%d:", v_u8);
 	RSDO(id, 0x6100, 6, v_u8);
-	_PRINTF("%d ", v_u8);
+	_PRINTF("%d | ", v_u8);
+	RSDO(id, 0x6100, 0xC, v_i32);
+	_PRINTF("h %d | ", v_i32);
+	RSDO(id, 0x6100, 0xD, v_i32);
+	_PRINTF("hMSL %d | ", v_i32);
+	RSDO(id, 0x6100, 0x12, v_u8);
+	_PRINTF("numSV %d\n", v_u8);
 
-	_PRINTF("\nBaro: ");
+	RSDO(id, 0x6100, 7, v_i32);
+	_PRINTF("nano %d | ", v_i32);
+	RSDO(id, 0x6100, 8, v_u32);
+	_PRINTF("iTOW %d | ", v_u32);
+	RSDO(id, 0x6100, 9, v_u32);
+	_PRINTF("tAcc %d | ", v_u32);
+	RSDO(id, 0x6100, 0xA, v_i32);
+	_PRINTF("lon %d | ", v_i32);
+	RSDO(id, 0x6100, 0xB, v_i32);
+	_PRINTF("lat %d | ", v_i32);
+	RSDO(id, 0x6100, 0xE, v_u32);
+	_PRINTF("hAcc %d | ", v_u32);
+	RSDO(id, 0x6100, 0xF, v_u32);
+	_PRINTF("vAcc %d | ", v_u32);
+	RSDO(id, 0x6100, 0x10, v_u32);
+	_PRINTF("sAcc %d\n", v_u32);
+	RSDO(id, 0x6100, 0x11, v_u32);
+	_PRINTF("headAcc %d | ", v_u32);
+	RSDO(id, 0x6100, 0x13, v_i32);
+	_PRINTF("headMot %d | ", v_i32);
+	RSDO(id, 0x6100, 0x14, v_i32);
+	_PRINTF("velN %d | ", v_i32);
+	RSDO(id, 0x6100, 0x15, v_i32);
+	_PRINTF("velE %d | ", v_i32);
+	RSDO(id, 0x6100, 0x16, v_i32);
+	_PRINTF("velD %d | ", v_i32);
+	RSDO(id, 0x6100, 0x17, v_i32);
+	_PRINTF("gSpd %d | ", v_i32);
+	RSDO(id, 0x6100, 0x18, v_u16);
+	_PRINTF("pDOP %d | ", v_u16);
+	RSDO(id, 0x6100, 0x19, v_u32);
+	_PRINTF("flags x%x\n", v_u32);
+
+	_PRINTF("Baro: ");
 	RSDO(id, 0x6101, 1, v_u32);
 	_PRINTF("%d | Temp: ", v_u32);
 	RSDO(id, 0x6101, 2, v_i16);
 	_PRINTF("%d\n", v_i16);
+	
+	_PRINTF("AHT21: Temp: ");
+	RSDO(id, 0x6103, 1, v_i16);
+	_PRINTF("%d | Hum: ", v_i16);
+	RSDO(id, 0x6103, 2, v_i16);
+	_PRINTF("%d\n", v_i16);
 
-	_PRINTF("\nMeteo: WindA ");
+	_PRINTF("Meteo: WindA ");
 	RSDO(id, 0x6102, 1, v_u32);
-	_PRINTF("%d Head: ", v_u32);
-	RSDO(id, 0x6102, 2, v_u16);
-	_PRINTF("%d RainA: ", v_u16);
-	RSDO(id, 0x6102, 3, v_u32);
+	_PRINTF("%d | Head: ", v_u32);
+	RSDO(id, 0x6102, 0xa, v_u16);
+	_PRINTF("%d\n", v_u16);
+	uint32_t head[8];
+	for(uint32_t i=0x2; i<=0x9; i++)
+	{
+		RSDO(id, 0x6102, i, head[i - 0x2]);
+	}
+	_PRINTF("E %d NE %d N %d NW %d W %d SW %d S %d SE %d\n",
+		head[0], head[1], head[2], head[3], head[4], head[5], head[6], head[7]);
+
+	_PRINTF("RainA: ");
+	RSDO(id, 0x6102, 0xb, v_u32);
 	_PRINTF("%d Temp: ", v_u32);
-	RSDO(id, 0x6102, 4, v_i16);
+	RSDO(id, 0x6102, 0xc, v_i16);
 	_PRINTF("%d Solar: ", v_i16);
-	RSDO(id, 0x6102, 6, v_i16);
+	RSDO(id, 0x6102, 0xe, v_i16);
 	_PRINTF("%d\n", v_i16);
 
 	return CON_CB_SILENT;

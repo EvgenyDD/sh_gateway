@@ -1,6 +1,8 @@
 #include "adc.h"
 #include "stm32f4xx.h"
 
+#define SAMPLE_ACC_COUNT 128
+
 enum
 {
 	ADC_CH_VOUT = 0,
@@ -13,6 +15,8 @@ enum
 adc_val_t adc_val = {0};
 
 static volatile uint16_t adc_buf[ADC_CH];
+static volatile uint32_t adc_buf_acc[ADC_CH][SAMPLE_ACC_COUNT] = {0};
+static volatile uint32_t adc_buf_ptr = 0;
 
 void adc_init(void)
 {
@@ -81,8 +85,22 @@ void adc_init(void)
 
 void adc_track(void)
 {
-	adc_val.vin = (float)adc_buf[ADC_CH_VIN] / 4095.0f * 3.3f * (1.0f + 100.0f / 10.0f);
-	adc_val.vout = (float)adc_buf[ADC_CH_VOUT] / 4095.0f * 3.3f * (1.0f + 100.0f / 10.0f);
-	adc_val.i_sns = (float)(adc_buf[ADC_CH_I_SNS] - 2048) / (0.02f * 20.0f / 3.3f * 4095.0f); // 2mA quant
+	volatile uint32_t buf_acc[ADC_CH] = {0};
+
+	for(uint32_t i=0; i<ADC_CH; i++)
+	{
+		adc_buf_acc[i][adc_buf_ptr] = adc_buf[i];
+		for(uint32_t j=0; j<SAMPLE_ACC_COUNT; j++)
+		{
+			buf_acc[i] += adc_buf_acc[i][j];
+		}
+		buf_acc[i] /= SAMPLE_ACC_COUNT;
+	}
+	if(++adc_buf_ptr >= SAMPLE_ACC_COUNT) adc_buf_ptr = 0;
+
+	adc_val.vin = (float)buf_acc[ADC_CH_VIN] / 4095.0f * 3.3f * (1.0f + 100.0f / 10.0f);
+	adc_val.vout = (float)buf_acc[ADC_CH_VOUT] / 4095.0f * 3.3f * (1.0f + 100.0f / 10.0f);
+	adc_val.i_sns = (float)(2048 - buf_acc[ADC_CH_I_SNS]) / (0.02f * 20.0f / 3.3f * 4095.0f); // 2mA quant
+
 	adc_val.ir = adc_buf[ADC_CH_IR];
 }
