@@ -18,9 +18,8 @@
 #include "platform.h"
 #include "prof.h"
 #include "ret_mem.h"
+#include "sock_master.h"
 #include "spi_common.h"
-
-extern void pooool(void);
 
 #define SYSTICK_IN_US (168000000 / 1000000)
 #define SYSTICK_IN_MS (168000000 / 1000)
@@ -43,6 +42,8 @@ static uint8_t pending_can_node_id = 1; /* read from dip switches or nonvolatile
 uint16_t pending_can_baud = 500;		/* read from dip switches or nonvolatile memory, configurable by LSS slave */
 
 volatile uint64_t system_time = 0;
+
+static struct tcp_pcb c_sock;
 
 static int32_t prev_systick = 0;
 
@@ -140,6 +141,7 @@ void main(void)
 	LwIP_init();
 	console_udp_init();
 	tftpd_init();
+	sock_master_init(&c_sock, 5000);
 
 	can_drv_init(CAN1);
 
@@ -244,8 +246,6 @@ void main(void)
 				{
 					_PRINTF("FAULT! Load Switcher!\n");
 				}
-
-				pooool();
 			}
 		}
 
