@@ -246,6 +246,8 @@ void main(void)
 				adc_track();
 				pc_poll(diff_ms);
 				emeter_poll(diff_ms);
+				sock_cli_poll(diff_ms);
+				
 				if(load_switcher_poll(diff_ms))
 				{
 					_PRINTF("FAULT! Load Switcher!\n");

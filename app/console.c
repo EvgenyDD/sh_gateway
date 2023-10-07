@@ -170,7 +170,8 @@ int energy_cb(const char *arg, int l)
 	return CON_CB_SILENT;
 }
 
-static struct tcp_pcb cc_sock;
+static struct tcp_pcb *cc_sock=NULL;
+
 int cli_cb(const char *arg, int l)
 {
 	uint8_t ipaddr[] = {7, 7, 7, 1};
@@ -178,9 +179,11 @@ int cli_cb(const char *arg, int l)
 	_PRINTF("STS: %d\n", sts);
 	return CON_CB_OK;
 }
+
 int sli_cb(const char *arg, int l)
 {
-	_PRINTF("flags: %d\n", cc_sock.flags);
+	_PRINTF("state1: %d\n", sock_cli_get_state(cc_sock));
+	_PRINTF("state2: x%x\n", cc_sock->state);
 	return CON_CB_OK;
 }
 

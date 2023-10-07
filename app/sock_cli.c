@@ -12,7 +12,7 @@ volatile uint32_t message_count = 0;
 
 u8_t data[100];
 
-struct tcp_pcb *echoclient_pcb;
+
 
 static err_t tcp_echoclient_poll(void *arg, struct tcp_pcb *tpcb);
 
@@ -22,6 +22,7 @@ enum echoclient_states
 	ES_CONNECTED,
 	ES_RECEIVED,
 	ES_CLOSING,
+	ES_UNDEFINED,
 };
 
 struct echoclient
@@ -193,19 +194,34 @@ static err_t tcp_echoclient_connected(void *arg, struct tcp_pcb *tpcb, err_t err
 	return err;
 }
 
-int sock_cli_init(struct tcp_pcb *inst, const uint8_t *ipaddr, int port)
+int sock_cli_init(struct tcp_pcb **inst, const uint8_t *ipaddr, int port)
 {
 	struct ip_addr DestIPaddr;
-	echoclient_pcb = tcp_new();
-	if(echoclient_pcb != NULL)
+	*inst = tcp_new();
+	if(inst != NULL)
 	{
 		IP4_ADDR(&DestIPaddr, ipaddr[0], ipaddr[1], ipaddr[2], ipaddr[3]);
-		tcp_connect(echoclient_pcb, &DestIPaddr, port, tcp_echoclient_connected);
+		tcp_connect(*inst, &DestIPaddr, port, tcp_echoclient_connected);
 		return 0;
 	}
 	else
 	{
-		memp_free(MEMP_TCP_PCB, echoclient_pcb);
+		memp_free(MEMP_TCP_PCB, *inst);
 		return 1;
 	}
+}
+
+void sock_cli_poll(uint32_t diff_ms)
+{
+
+}
+
+int sock_cli_get_state(struct tcp_pcb *inst)
+{
+	struct echoclient *es = (struct echoclient *)inst->callback_arg;
+	if(es != NULL)
+	{
+		return es->state;
+	}
+	return ES_UNDEFINED;
 }
