@@ -13,11 +13,11 @@ static int fw_cb(const char *arg, int l)
 	fw_header_check_all();
 	const char *p_build_ts = fw_fields_find_by_key_helper(&g_fw_info[FW_TYPE], "build_ts");
 	_PRINTF("%s %s : %d.%d.%d : %s\n",
-			g_fw_info[FW_APP].field_product_ptr,
-			g_fw_info[FW_APP].field_product_name_ptr,
-			g_fw_info[FW_APP].ver_major,
-			g_fw_info[FW_APP].ver_minor,
-			g_fw_info[FW_APP].ver_patch,
+			g_fw_info[FW_LDR].field_product_ptr,
+			g_fw_info[FW_LDR].field_product_name_ptr,
+			g_fw_info[FW_LDR].ver_major,
+			g_fw_info[FW_LDR].ver_minor,
+			g_fw_info[FW_LDR].ver_patch,
 			p_build_ts ? p_build_ts : "");
 	_PRINTF("PRELDR: %d\n", g_fw_info[FW_PRELDR].locked);
 	_PRINTF("LDR   : %d\n", g_fw_info[FW_LDR].locked);
