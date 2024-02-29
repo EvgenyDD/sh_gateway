@@ -639,7 +639,10 @@ ip_frag_free_pbuf_custom_ref(struct pbuf_custom_ref* p)
 static void
 ipfrag_free_pbuf_custom(struct pbuf *p)
 {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstrict-aliasing"
   struct pbuf_custom_ref *pcr = (struct pbuf_custom_ref*)p;
+#pragma GCC diagnostic pop
   LWIP_ASSERT("pcr != NULL", pcr != NULL);
   LWIP_ASSERT("pcr == p", (void*)pcr == (void*)p);
   if (pcr->original != NULL) {

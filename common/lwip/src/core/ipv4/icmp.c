@@ -158,8 +158,11 @@ icmp_input(struct pbuf *p, struct netif *inp)
         LWIP_DEBUGF(ICMP_DEBUG, ("icmp_input: allocating new pbuf failed\n"));
         goto memerr;
       }
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
       LWIP_ASSERT("check that first pbuf can hold struct the ICMP header",
                   (r->len >= hlen + sizeof(struct icmp_echo_hdr)));
+#pragma GCC diagnostic pop
       /* copy the whole packet including ip header */
       if (pbuf_copy(r, p) != ERR_OK) {
         LWIP_ASSERT("icmp_input: copying to new pbuf failed\n", 0);

@@ -6,8 +6,8 @@
 
 typedef struct
 {
-	int32_t temp_0_1C;
-	int32_t hum_0_1perc;
+	float temp;
+	float hum;
 	bool sensor_present;
 } aht21_t;
 

@@ -339,7 +339,7 @@ void             tcp_err     (struct tcp_pcb *pcb, tcp_err_fn err);
 #endif /* TCP_LISTEN_BACKLOG */
 
 void             tcp_recved  (struct tcp_pcb *pcb, u16_t len);
-err_t            tcp_bind    (struct tcp_pcb *pcb, ip_addr_t *ipaddr,
+err_t            tcp_bind    (struct tcp_pcb *pcb, const ip_addr_t *ipaddr,
                               u16_t port);
 err_t            tcp_connect (struct tcp_pcb *pcb, ip_addr_t *ipaddr,
                               u16_t port, tcp_connected_fn connected);
@@ -355,7 +355,7 @@ err_t            tcp_shutdown(struct tcp_pcb *pcb, int shut_rx, int shut_tx);
 #define TCP_WRITE_FLAG_COPY 0x01
 #define TCP_WRITE_FLAG_MORE 0x02
 
-err_t            tcp_write   (struct tcp_pcb *pcb, const void *dataptr, u16_t len,
+err_t            tcp_write   (struct tcp_pcb *pcb, void *dataptr, u16_t len,
                               u8_t apiflags);
 
 void             tcp_setprio (struct tcp_pcb *pcb, u8_t prio);

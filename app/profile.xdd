@@ -15,7 +15,7 @@
         <ProfileTechnology>CANopen</ProfileTechnology>
       </ISO15745Reference>
     </ProfileHeader>
-    <ProfileBody xmlns:q1="http://www.canopen.org/xml/1.1" xsi:type="q1:ProfileBody_Device_CANopen" formatName="CANopen" formatVersion="1.0" fileName="profile.xdd" fileCreator="" fileCreationDate="2020-11-23" fileCreationTime="14:00:00.0000000+03:00" fileModifiedBy="" fileModificationDate="2023-09-23" fileModificationTime="12:40:43.8694492+03:00" fileVersion="1" supportedLanguages="en" xmlns="">
+    <ProfileBody xmlns:q1="http://www.canopen.org/xml/1.1" xsi:type="q1:ProfileBody_Device_CANopen" formatName="CANopen" formatVersion="1.0" fileName="profile.xdd" fileCreator="" fileCreationDate="2020-11-23" fileCreationTime="13:00:00.0000000+02:00" fileModifiedBy="" fileModificationDate="2024-02-28" fileModificationTime="22:59:32.8008019+02:00" fileVersion="1" supportedLanguages="en" xmlns="">
       <q1:DeviceIdentity>
         <q1:vendorName>Home</q1:vendorName>
         <q1:vendorID></q1:vendorID>
@@ -663,6 +663,17 @@
             </q1:varDeclaration>
             <q1:varDeclaration name="Error" uniqueID="UID_RECSUB_1F5701">
               <UDINT />
+            </q1:varDeclaration>
+          </q1:struct>
+          <q1:struct name="power" uniqueID="UID_REC_6000">
+            <q1:varDeclaration name="Highest sub-index supported" uniqueID="UID_RECSUB_600000">
+              <USINT />
+            </q1:varDeclaration>
+            <q1:varDeclaration name="energy" uniqueID="UID_RECSUB_600001">
+              <REAL />
+            </q1:varDeclaration>
+            <q1:varDeclaration name="power" uniqueID="UID_RECSUB_600002">
+              <REAL />
             </q1:varDeclaration>
           </q1:struct>
         </q1:dataTypeList>
@@ -1919,7 +1930,6 @@
   * Value 255: event-driven (device profile and application profile specific)
 * Event timer in ms (0 = disabled) for deadline monitoring.</description>
             <q1:dataTypeIDRef uniqueIDRef="UID_REC_1400" />
-            <q1:property name="CO_disabled" value="true" />
             <q1:property name="CO_countLabel" value="RPDO" />
             <q1:property name="CO_storageGroup" value="PERSIST_COMM" />
           </q1:parameter>
@@ -2097,7 +2107,6 @@
   * bit 8-15: sub-index
   * bit 0-7: data length in bits</description>
             <q1:dataTypeIDRef uniqueIDRef="UID_REC_1600" />
-            <q1:property name="CO_disabled" value="true" />
             <q1:property name="CO_storageGroup" value="PERSIST_COMM" />
           </q1:parameter>
           <q1:parameter uniqueID="UID_SUB_160000" access="readWrite">
@@ -2395,7 +2404,6 @@
   * Value 0: Counter of the SYNC message shall not be processed.
   * Value 1-240: The SYNC message with the counter value equal to this value shall be regarded as the first received SYNC message.</description>
             <q1:dataTypeIDRef uniqueIDRef="UID_REC_1800" />
-            <q1:property name="CO_disabled" value="true" />
             <q1:property name="CO_countLabel" value="TPDO" />
             <q1:property name="CO_storageGroup" value="PERSIST_COMM" />
           </q1:parameter>
@@ -2647,7 +2655,6 @@
   * bit 8-15: sub-index
   * bit 0-7: data length in bits</description>
             <q1:dataTypeIDRef uniqueIDRef="UID_REC_1A00" />
-            <q1:property name="CO_disabled" value="true" />
             <q1:property name="CO_storageGroup" value="PERSIST_COMM" />
           </q1:parameter>
           <q1:parameter uniqueID="UID_SUB_1A0000" access="readWrite">
@@ -2982,6 +2989,25 @@
             <UDINT />
             <q1:defaultValue value="0" />
           </q1:parameter>
+          <q1:parameter uniqueID="UID_OBJ_6000">
+            <label lang="en">power</label>
+            <q1:dataTypeIDRef uniqueIDRef="UID_REC_6000" />
+          </q1:parameter>
+          <q1:parameter uniqueID="UID_SUB_600000">
+            <label lang="en">Highest sub-index supported</label>
+            <USINT />
+            <q1:defaultValue value="0x02" />
+          </q1:parameter>
+          <q1:parameter uniqueID="UID_SUB_600001" access="readWrite">
+            <label lang="en">energy</label>
+            <REAL />
+            <q1:defaultValue value="0" />
+          </q1:parameter>
+          <q1:parameter uniqueID="UID_SUB_600002" access="readWrite">
+            <label lang="en">power</label>
+            <REAL />
+            <q1:defaultValue value="0" />
+          </q1:parameter>
         </q1:parameterList>
       </q1:ApplicationProcess>
     </ProfileBody>
@@ -2999,7 +3025,7 @@
         <ProfileTechnology>CANopen</ProfileTechnology>
       </ISO15745Reference>
     </ProfileHeader>
-    <ProfileBody xmlns:q2="http://www.canopen.org/xml/1.1" xsi:type="q2:ProfileBody_CommunicationNetwork_CANopen" formatName="CANopen" formatVersion="1.0" fileName="profile.xdd" fileCreator="" fileCreationDate="2020-11-23" fileCreationTime="14:00:00.0000000+03:00" fileModificationDate="2023-09-23" fileModificationTime="12:40:43.8694492+03:00" fileVersion="1" supportedLanguages="en" xmlns="">
+    <ProfileBody xmlns:q2="http://www.canopen.org/xml/1.1" xsi:type="q2:ProfileBody_CommunicationNetwork_CANopen" formatName="CANopen" formatVersion="1.0" fileName="profile.xdd" fileCreator="" fileCreationDate="2020-11-23" fileCreationTime="13:00:00.0000000+02:00" fileModificationDate="2024-02-28" fileModificationTime="22:59:32.8008019+02:00" fileVersion="1" supportedLanguages="en" xmlns="">
       <ApplicationLayers>
         <q2:CANopenObjectList>
           <CANopenObject index="1000" name="Device type" objectType="7" PDOmapping="no" uniqueIDRef="UID_OBJ_1000" />
@@ -3448,6 +3474,11 @@
           <CANopenObject index="1F57" name="Flash Status Identification" objectType="9" uniqueIDRef="UID_OBJ_1F57" subNumber="2">
             <CANopenSubObject subIndex="00" name="Highest sub-index supported" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_1F5700" />
             <CANopenSubObject subIndex="01" name="Error" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_1F5701" />
+          </CANopenObject>
+          <CANopenObject index="6000" name="power" objectType="9" uniqueIDRef="UID_OBJ_6000" subNumber="3">
+            <CANopenSubObject subIndex="00" name="Highest sub-index supported" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_600000" />
+            <CANopenSubObject subIndex="01" name="energy" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_600001" />
+            <CANopenSubObject subIndex="02" name="power" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_600002" />
           </CANopenObject>
         </q2:CANopenObjectList>
         <dummyUsage>

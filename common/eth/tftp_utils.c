@@ -14,8 +14,9 @@ tftp_opcode tftp_decode_op(char *buf)
  **/
 u16_t tftp_extract_block(char *buf)
 {
-	u16_t *b = (u16_t *)buf;
-	return ntohs(b[1]);
+	uint16_t b;
+	memcpy(&b, &buf[2], sizeof(b));
+	return ntohs(b);
 }
 
 /**
@@ -49,7 +50,7 @@ void tftp_set_errorcode(char *buffer, tftp_errorcode errCode)
 /**
  * @brief Sets the error message
  **/
-void tftp_set_errormsg(char *buffer, char *errormsg)
+void tftp_set_errormsg(char *buffer, const char *errormsg)
 {
 	strcpy(buffer + 4, errormsg);
 }
@@ -59,15 +60,14 @@ void tftp_set_errormsg(char *buffer, char *errormsg)
  **/
 void tftp_set_block(char *packet, u16_t block)
 {
-
-	u16_t *p = (u16_t *)packet;
-	p[1] = htons(block);
+	uint16_t b = htons(block);
+	memcpy(&packet[2], &b, sizeof(b));
 }
 
 /**
  * @brief Set the data message
  **/
-void tftp_set_data_message(char *packet, char *buf, int buflen)
+void tftp_set_data_message(char *packet, char *buf, uint32_t buflen)
 {
 	memcpy(packet + 4, buf, buflen);
 }

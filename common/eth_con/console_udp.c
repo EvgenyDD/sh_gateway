@@ -18,7 +18,7 @@ static struct
 } con_udp = {NULL, {0}, 0};
 
 static char print_buf[256];
-static char *error_str = "";
+static const char *error_str = "";
 
 void _PRINTF(const char *fmt, ...)
 {
@@ -32,7 +32,7 @@ void _PRINTF(const char *fmt, ...)
 	va_end(ap);
 
 	struct pbuf *p_send = pbuf_alloc(PBUF_TRANSPORT, act_len, PBUF_RAM);
-	memcpy(p_send->payload, print_buf, act_len);
+	memcpy(p_send->payload, print_buf, (size_t)act_len);
 	udp_sendto(con_udp.udp_pcb_con, p_send, &con_udp.addr, con_udp.port);
 
 	pbuf_free(p_send);
@@ -62,11 +62,11 @@ static void cb_udp_console(void *arg, struct udp_pcb *udp, struct pbuf *p, struc
 		prev_request[0] = '\0';
 	}
 
-	const uint8_t *data = (uint8_t *)p->payload;
-	if(data[p->len] != 0) return;
+	uint8_t *data = (uint8_t *)p->payload;
+	data[p->len] = 0;
 	if(p->len >= sizeof(prev_request)) return;
 
-	int len_req = p->len;
+	uint16_t len_req = p->len;
 
 	if(len_req == 1 && data[0] == '\n')
 	{
@@ -103,7 +103,7 @@ static void cb_udp_console(void *arg, struct udp_pcb *udp, struct pbuf *p, struc
 			if(console_cmd[i].cb)
 			{
 				l = strlen(console_cmd[i].name);
-				if(strncmp((char *)data, (char *)console_cmd[i].name, l) == 0)
+				if(strncmp((char *)data, (const char *)console_cmd[i].name, l) == 0)
 				{
 					if((len_req - l) > 0)
 					{

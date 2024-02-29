@@ -430,7 +430,7 @@ tcp_abort(struct tcp_pcb *pcb)
  *         ERR_OK if bound
  */
 err_t
-tcp_bind(struct tcp_pcb *pcb, ip_addr_t *ipaddr, u16_t port)
+tcp_bind(struct tcp_pcb *pcb, const ip_addr_t *ipaddr, u16_t port)
 {
   int i;
   int max_pcb_list = NUM_TCP_PCB_LISTS;
@@ -566,8 +566,11 @@ tcp_listen_with_backlog(struct tcp_pcb *pcb, u8_t backlog)
   lpcb->accepts_pending = 0;
   lpcb->backlog = (backlog ? backlog : 1);
 #endif /* TCP_LISTEN_BACKLOG */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstrict-aliasing"
   TCP_REG(&tcp_listen_pcbs.pcbs, (struct tcp_pcb *)lpcb);
   return (struct tcp_pcb *)lpcb;
+#pragma GCC diagnostic pop
 }
 
 /** 
@@ -623,7 +626,7 @@ tcp_recved(struct tcp_pcb *pcb, u16_t len)
     pcb->rcv_wnd = TCP_WND;
   }
 
-  wnd_inflation = tcp_update_rcv_ann_wnd(pcb);
+  wnd_inflation = (int)tcp_update_rcv_ann_wnd(pcb);
 
   /* If the change in the right edge of window is significant (default
    * watermark is TCP_WND/4), then send an explicit update now.

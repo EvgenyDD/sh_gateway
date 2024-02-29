@@ -763,7 +763,7 @@ udp_sendto_if_chksum(struct udp_pcb *pcb, struct pbuf *p, ip_addr_t *dst_ip,
  * @see udp_disconnect()
  */
 err_t
-udp_bind(struct udp_pcb *pcb, ip_addr_t *ipaddr, u16_t port)
+udp_bind(struct udp_pcb *pcb, const ip_addr_t *ipaddr, u16_t port)
 {
   struct udp_pcb *ipcb;
   u8_t rebind;

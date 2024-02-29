@@ -265,11 +265,11 @@ etharp_tmr(void)
 static s8_t
 etharp_find_entry(ip_addr_t *ipaddr, u8_t flags)
 {
-  s8_t old_pending = ARP_TABLE_SIZE, old_stable = ARP_TABLE_SIZE;
-  s8_t empty = ARP_TABLE_SIZE;
+  u8_t old_pending = ARP_TABLE_SIZE, old_stable = ARP_TABLE_SIZE;
+  u8_t empty = ARP_TABLE_SIZE;
   u8_t i = 0, age_pending = 0, age_stable = 0;
   /* oldest entry with packets on queue */
-  s8_t old_queue = ARP_TABLE_SIZE;
+  u8_t old_queue = ARP_TABLE_SIZE;
   /* its age */
   u8_t age_queue = 0;
 
@@ -302,7 +302,7 @@ etharp_find_entry(ip_addr_t *ipaddr, u8_t flags)
       if (ipaddr && ip_addr_cmp(ipaddr, &arp_table[i].ipaddr)) {
         LWIP_DEBUGF(ETHARP_DEBUG | LWIP_DBG_TRACE, ("etharp_find_entry: found matching entry %"U16_F"\n", (u16_t)i));
         /* found exact IP address match, simply bail out */
-        return i;
+        return (s8_t)i;
       }
       /* pending entry? */
       if (state == ETHARP_STATE_PENDING) {
@@ -412,7 +412,7 @@ etharp_find_entry(ip_addr_t *ipaddr, u8_t flags)
  * @return ERR_OK if the packet was sent, any other err_t on failure
  */
 static err_t
-etharp_send_ip(struct netif *netif, struct pbuf *p, struct eth_addr *src, struct eth_addr *dst)
+etharp_send_ip(struct netif *netif, struct pbuf *p, const struct eth_addr *src, const struct eth_addr *dst)
 {
   struct eth_hdr *ethhdr = (struct eth_hdr *)p->payload;
 
@@ -878,7 +878,7 @@ etharp_output_to_arp_index(struct netif *netif, struct pbuf *q, u8_t arp_idx)
 err_t
 etharp_output(struct netif *netif, struct pbuf *q, ip_addr_t *ipaddr)
 {
-  struct eth_addr *dest;
+  const struct eth_addr *dest;
   struct eth_addr mcastaddr;
   ip_addr_t *dst_addr = ipaddr;
 
@@ -901,7 +901,7 @@ etharp_output(struct netif *netif, struct pbuf *q, ip_addr_t *ipaddr)
   /* broadcast destination IP address? */
   if (ip_addr_isbroadcast(ipaddr, netif)) {
     /* broadcast on Ethernet also */
-    dest = (struct eth_addr *)&ethbroadcast;
+    dest = (const struct eth_addr *)&ethbroadcast;
   /* multicast destination IP address? */
   } else if (ip_addr_ismulticast(ipaddr)) {
     /* Hash IP multicast address to MAC address.*/
@@ -915,7 +915,7 @@ etharp_output(struct netif *netif, struct pbuf *q, ip_addr_t *ipaddr)
     dest = &mcastaddr;
   /* unicast destination IP address? */
   } else {
-    s8_t i;
+    u8_t i;
     /* outside local network? if so, this can neither be a global broadcast nor
        a subnet broadcast. */
     if (!ip_addr_netcmp(ipaddr, &(netif->ip_addr), &(netif->netmask)) &&
@@ -976,7 +976,7 @@ etharp_output(struct netif *netif, struct pbuf *q, ip_addr_t *ipaddr)
   /* continuation for multicast/broadcast destinations */
   /* obtain source Ethernet address of the given interface */
   /* send packet directly on the link */
-  return etharp_send_ip(netif, q, (struct eth_addr*)(netif->hwaddr), dest);
+  return etharp_send_ip(netif, q, (const struct eth_addr*)(netif->hwaddr), dest);
 }
 
 /**
@@ -1070,7 +1070,7 @@ etharp_query(struct netif *netif, ip_addr_t *ipaddr, struct pbuf *q)
   /* stable entry? */
   if (arp_table[i].state >= ETHARP_STATE_STABLE) {
     /* we have a valid IP->Ethernet address mapping */
-    ETHARP_SET_HINT(netif, i);
+    ETHARP_SET_HINT(netif, (u8_t)i);
     /* send the packet */
     result = etharp_send_ip(netif, q, srcaddr, &(arp_table[i].ethaddr));
   /* pending entry? (either just created or already pending */

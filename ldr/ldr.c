@@ -21,7 +21,7 @@ bool g_stay_in_boot = false;
 
 volatile uint64_t system_time = 0;
 
-static volatile int boot_delay = BOOT_DELAY;
+static volatile uint32_t boot_delay = BOOT_DELAY;
 static int32_t prev_systick = 0;
 
 static uint8_t ip_addr[4] = {192, 168, 0, 200};
@@ -47,7 +47,7 @@ void delay_ms(volatile uint32_t delay_ms)
 	}
 }
 
-void main(void)
+__attribute__((noreturn)) void main(void)
 {
 	RCC->AHB1ENR |= RCC_AHB1ENR_CRCEN;
 
@@ -130,9 +130,14 @@ void main(void)
 		}
 		else
 		{
-			GPIOE->ODR &= ~(1 << 4);
+			GPIOE->ODR &= (uint32_t) ~(1 << 4);
 		}
 
 		adc_track();
 	}
+}
+
+void lwip_assert(const char *s)
+{
+	// _PRINTF("LWIP ASS %s\n", s);
 }

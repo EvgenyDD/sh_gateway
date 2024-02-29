@@ -3,25 +3,32 @@
 #include "CO_driver_storage.h"
 #include "OD.h"
 #include "adc.h"
+#include "aht21.h"
 #include "can_driver.h"
 #include "config_system.h"
 #include "crc.h"
 #include "emeter.h"
+#include "error.h"
 #include "eth/netconf.h"
 #include "eth/tftp_server.h"
 #include "eth_con/console_udp.h"
 #include "ethernetif.h"
 #include "fram.h"
 #include "fw_header.h"
+#include "i2c_common.h"
 #include "load_switcher.h"
+#include "logger.h"
 #include "lss_cb.h"
 #include "pc.h"
 #include "platform.h"
 #include "prof.h"
 #include "ret_mem.h"
+#include "rtc.h"
 #include "sock_cli.h"
 #include "sock_srv.h"
 #include "spi_common.h"
+
+int gsts = -10;
 
 #define SYSTICK_IN_US (168000000 / 1000000)
 #define SYSTICK_IN_MS (168000000 / 1000)
@@ -35,6 +42,8 @@
 
 bool g_stay_in_boot = false;
 uint8_t g_ip_address[4] = {192, 168, 0, 200};
+uint8_t g_ip_addr_master[4] = {0, 0, 0, 0};
+uint8_t g_ip_addr_gw[4 * GW_COUNT] = {0, 0, 0, 0};
 
 CO_t *CO = NULL;
 uint32_t g_uid[3];
@@ -45,7 +54,11 @@ uint16_t pending_can_baud = 500;		/* read from dip switches or nonvolatile memor
 
 volatile uint64_t system_time = 0;
 
-static struct tcp_pcb c_sock;
+static sock_cli_t sock_slv_mst = {0};
+static sock_cli_t sock_slv_gw[GW_COUNT] = {0};
+static bool sock_cli_mst_ready = false;
+static bool sock_cli_gw_ready[GW_COUNT] = {0};
+static struct tcp_pcb sock_srv = {0};
 
 static int32_t prev_systick = 0;
 
@@ -57,6 +70,8 @@ config_entry_t g_device_config[] = {
 	{"can_baud", sizeof(pending_can_baud), 0, &pending_can_baud},
 	{"hb_prod_ms", sizeof(OD_PERSIST_COMM.x1017_producerHeartbeatTime), 0, &OD_PERSIST_COMM.x1017_producerHeartbeatTime},
 	{"ip", sizeof(g_ip_address), 0, &g_ip_address},
+	{"ip_mst", sizeof(g_ip_addr_master), 0, &g_ip_addr_master},
+	{"ip_gw", sizeof(g_ip_addr_gw), 0, &g_ip_addr_gw},
 };
 const uint32_t g_device_config_count = sizeof(g_device_config) / sizeof(g_device_config[0]);
 
@@ -95,7 +110,35 @@ static void end_loop(void)
 	platform_reset();
 }
 
-void main(void)
+uint8_t buf[128];
+#undef BYTE_ORDER
+#undef LITTLE_ENDIAN
+#undef BIG_ENDIAN
+
+#include <stdio.h>
+
+static struct tcp_pcb *last_gtwa_pcb = NULL;
+
+uint32_t fuck = 0, fuck2 = 0;
+
+void cb_srv_sock_rx(struct tcp_pcb *tpcb, const struct pbuf *p);
+void cb_srv_sock_rx(struct tcp_pcb *tpcb, const struct pbuf *p)
+{
+	last_gtwa_pcb = tpcb;
+	size_t len = CO_GTWA_write(CO->gtwa, p->payload, p->len);
+	tcp_recved(tpcb, p->len);
+}
+
+static size_t gtwa_write_response(void *object, const char *b, size_t count, uint8_t *connectionOK)
+{
+	if(last_gtwa_pcb)
+	{
+		/*int sts = */ sock_srv_send(last_gtwa_pcb, b, count);
+	}
+	return count;
+}
+
+__attribute__((noreturn)) void main(void)
 {
 	RCC->AHB1ENR |= RCC_AHB1ENR_CRCEN;
 
@@ -118,6 +161,11 @@ void main(void)
 	GPIO_InitStruct.GPIO_OType = GPIO_OType_PP;
 	GPIO_Init(GPIOE, &GPIO_InitStruct);
 
+	GPIO_InitStruct.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_1;
+	GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+	gsts = rtc_init();
+
 	fw_header_check_all();
 
 	ret_mem_init();
@@ -127,9 +175,21 @@ void main(void)
 	pc_init();
 	adc_init();
 	spi_common_init();
+	i2c_init();
+
+	aht21_init();
+
 	fram_init();
+	int sts_fram = fram_check_sn();
+	if(sts_fram)
+	{
+		// #warning "AAAAAAAAAAAAAAAAA"
+	}
+	fram_data_read();
 
 	if(config_validate() == CONFIG_STS_OK) config_read_storage();
+
+	// logger_init();
 
 	uint32_t crc = crc32((const uint8_t *)g_uid, 12);
 	ethernetif_cfg_mac()[3] = (crc >> 16) & 0xFF;
@@ -143,7 +203,28 @@ void main(void)
 	LwIP_init();
 	console_udp_init();
 	tftpd_init();
-	sock_srv_init(&c_sock, 5000);
+	sock_srv_init(&sock_srv, 5000);
+
+	if(g_ip_addr_master[0] != 0 ||
+	   g_ip_addr_master[1] != 0 ||
+	   g_ip_addr_master[2] != 0 ||
+	   g_ip_addr_master[3] != 0)
+	{
+		int sts = sock_cli_init(&sock_slv_mst, g_ip_addr_master, 5000);
+		if(sts == 0) sock_cli_mst_ready = true;
+	}
+	for(uint32_t i = 0; i < GW_COUNT; i++)
+	{
+		if(g_ip_addr_gw[i * 4 + 0] != 0 ||
+		   g_ip_addr_gw[i * 4 + 1] != 0 ||
+		   g_ip_addr_gw[i * 4 + 2] != 0 ||
+		   g_ip_addr_gw[i * 4 + 3] != 0)
+		{
+			int sts = sock_cli_init(&sock_slv_gw[i], &g_ip_addr_gw[i * 4], 5000);
+			if(sts == 0) sock_cli_gw_ready[i] = true;
+		}
+	}
+
 	emeter_init();
 
 	can_drv_init(CAN1);
@@ -194,7 +275,7 @@ void main(void)
 												  NMT_CONTROL, /* CO_NMT_control_t */
 												  500,		   /* firstHBTime_ms */
 												  1000,		   /* SDOserverTimeoutTime_ms */
-												  500,		   /* SDOclientTimeoutTime_ms */
+												  200,		   /* SDOclientTimeoutTime_ms */
 												  false,	   /* SDOclientBlockTransfer */
 												  active_can_node_id,
 												  &errInfo);
@@ -202,6 +283,8 @@ void main(void)
 
 			err = CO_CANopenInitPDO(CO, CO->em, OD, active_can_node_id, &errInfo);
 			if(err != CO_ERROR_NO && err != CO_ERROR_NODE_ID_UNCONFIGURED_LSS) end_loop();
+
+			CO_GTWA_initRead(CO->gtwa, gtwa_write_response, NULL);
 
 			CO_EM_initCallbackRx(CO->em, co_emcy_rcv_cb);
 			CO_CANsetNormalMode(CO->CANmodule);
@@ -226,7 +309,7 @@ void main(void)
 				platform_watchdog_reset();
 
 				CO_CANinterrupt(CO->CANmodule);
-				reset = CO_process(CO, false, diff_us, NULL);
+				reset = CO_process(CO, true, diff_us, NULL);
 				lss_cb_poll(&lss_obj, diff_us);
 
 				system_time += diff_ms;
@@ -241,17 +324,27 @@ void main(void)
 				}
 				else
 				{
-					GPIOE->ODR &= ~(1 << 4);
+					GPIOE->ODR &= (uint32_t) ~(1 << 4);
 				}
+
 				adc_track();
 				pc_poll(diff_ms);
 				emeter_poll(diff_ms);
-				sock_cli_poll(diff_ms);
-				
+
+				if(sock_cli_mst_ready) sock_cli_poll(&sock_slv_mst, diff_ms);
+				for(uint32_t i = 0; i < GW_COUNT; i++)
+				{
+					if(sock_cli_gw_ready[i]) sock_cli_poll(&sock_slv_gw[i], diff_ms);
+				}
+
 				if(load_switcher_poll(diff_ms))
 				{
 					_PRINTF("FAULT! Load Switcher!\n");
 				}
+
+				if(aht21_data.sensor_present) aht21_poll(diff_ms);
+
+				fuck++;
 			}
 		}
 
@@ -261,4 +354,12 @@ void main(void)
 
 		// 	platform_reset();
 	}
+}
+
+uint32_t lwip_assert_counter = 0;
+
+void lwip_assert(const char *s)
+{
+	lwip_assert_counter++;
+	_PRINTF("LWIP ASSRT %s\n", s);
 }

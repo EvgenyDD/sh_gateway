@@ -35,7 +35,7 @@ void can_drv_leave_init_mode(CAN_TypeDef *dev)
 	reg &= ~CAN_BTR_SILM;
 	reg &= ~CAN_BTR_LBKM;
 	dev->BTR = reg;
-	dev->MCR &= ~CAN_MCR_INRQ;
+	dev->MCR &= (uint32_t)~CAN_MCR_INRQ;
 	while((dev->MSR & CAN_MSR_INAK) != 0U)
 		;
 }
@@ -51,11 +51,11 @@ void can_drv_start(CAN_TypeDef *dev)
 {
 	dev->IER |= CAN_IER_LECIE | CAN_IER_BOFIE | CAN_IER_EPVIE | CAN_IER_EWGIE;
 
-	dev->MCR &= ~CAN_MCR_NART;	// disable no auto-retransmit
-	dev->MCR |= CAN_MCR_ABOM;	// enable bus off recovery
-	dev->MCR |= CAN_MCR_AWUM;	// enable sleep recovery
-	dev->MCR |= CAN_MCR_TXFP;	// transmit order chronologically
-	dev->MCR &= ~CAN_MCR_SLEEP; // disable sleep mode
+	dev->MCR &= (uint32_t)~CAN_MCR_NART;  // disable no auto-retransmit
+	dev->MCR |= CAN_MCR_ABOM;			  // enable bus off recovery
+	dev->MCR |= CAN_MCR_AWUM;			  // enable sleep recovery
+	dev->MCR |= CAN_MCR_TXFP;			  // transmit order chronologically
+	dev->MCR &= (uint32_t)~CAN_MCR_SLEEP; // disable sleep mode
 
 	SET_BIT(dev->FMR, CAN_FMR_FINIT);
 

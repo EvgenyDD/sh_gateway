@@ -1,10 +1,10 @@
-int can_emcy_cb(const char *arg, int l)
+static int can_emcy_cb(const char *arg, int l)
 {
 	co_emcy_print_hist();
 	return CON_CB_SILENT;
 }
 
-int can_hb_cb(const char *arg, int l)
+static int can_hb_cb(const char *arg, int l)
 {
 	uint32_t count_online = 0, count_offline = 0;
 	for(uint32_t nd = 0; nd < CO->HBcons->numberOfMonitoredNodes; nd++)
@@ -21,10 +21,10 @@ int can_hb_cb(const char *arg, int l)
 	return CON_CB_SILENT;
 }
 
-int can_fw_cb(const char *arg, int l)
+static int can_fw_cb(const char *arg, int l)
 {
 	unsigned int id = 0;
-	int n = sscanf(arg, "%d", &id);
+	int n = sscanf(arg, "%u", &id);
 	if(n != 1) id = 0;
 	bool br = id != 0;
 
@@ -95,10 +95,10 @@ int can_fw_cb(const char *arg, int l)
 	return CON_CB_SILENT;
 }
 
-int sdo_rd_cb(const char *arg, int l)
+static int sdo_rd_cb(const char *arg, int l)
 {
 	unsigned int id = 0, idx = 0, subidx = 0;
-	int n = sscanf(arg, "%d %x %u", &id, &idx, &subidx);
+	int n = sscanf(arg, "%u %x %u", &id, &idx, &subidx);
 	if(n != 3)
 	{
 		_PRINTF("Wrong format\n");
@@ -120,16 +120,16 @@ int sdo_rd_cb(const char *arg, int l)
 	return CON_CB_SILENT;
 }
 
-int sdo_wr_cb(const char *arg, int l)
+static int sdo_wr_cb(const char *arg, int l)
 {
 	_PRINTF("not implemented\n");
 	return CON_CB_SILENT;
 }
 
-int can_role_cb(const char *arg, int l)
+static int can_role_cb(const char *arg, int l)
 {
 	unsigned int id = 0, new_role;
-	int n = sscanf(arg, "%d %x", &id, &new_role);
+	int n = sscanf(arg, "%u %x", &id, &new_role);
 	if(n != 2)
 	{
 		_PRINTF("Wrong format!\n");
@@ -145,10 +145,10 @@ int can_role_cb(const char *arg, int l)
 	return CON_CB_SILENT;
 }
 
-int can_save_cb(const char *arg, int l)
+static int can_save_cb(const char *arg, int l)
 {
 	unsigned int id = 0;
-	int n = sscanf(arg, "%d", &id);
+	int n = sscanf(arg, "%u", &id);
 	if(n != 1) id = 0;
 	bool br = id != 0;
 
@@ -172,10 +172,10 @@ int can_save_cb(const char *arg, int l)
 	return CON_CB_SILENT;
 }
 
-int can_rst_comm_cb(const char *arg, int l)
+static int can_rst_comm_cb(const char *arg, int l)
 {
 	unsigned int id = 0;
-	int n = sscanf(arg, "%d", &id);
+	int n = sscanf(arg, "%u", &id);
 	if(n != 1) id = 0;
 	if(id == 0)
 	{
@@ -187,10 +187,10 @@ int can_rst_comm_cb(const char *arg, int l)
 	return CON_CB_SILENT;
 }
 
-int can_rst_cb(const char *arg, int l)
+static int can_rst_cb(const char *arg, int l)
 {
 	unsigned int id = 0;
-	int n = sscanf(arg, "%d", &id);
+	int n = sscanf(arg, "%u", &id);
 	if(n != 1) id = 0;
 	if(id == 0)
 		_PRINTF("Resetting ALL nodes\n");
@@ -200,10 +200,10 @@ int can_rst_cb(const char *arg, int l)
 	return CON_CB_SILENT;
 }
 
-int can_rst_freeze_cb(const char *arg, int l)
+static int can_rst_freeze_cb(const char *arg, int l)
 {
 	unsigned int id = 0;
-	int n = sscanf(arg, "%d", &id);
+	int n = sscanf(arg, "%u", &id);
 	if(n != 1) id = 0;
 	if(id == 0)
 		_PRINTF("Resetting ALL nodes\n");
@@ -235,10 +235,10 @@ int can_rst_freeze_cb(const char *arg, int l)
 	return CON_CB_SILENT;
 }
 
-int can_id_cb(const char *arg, int l)
+static int can_id_cb(const char *arg, int l)
 {
 	unsigned int id = 0, new_id = 0;
-	int n = sscanf(arg, "%d %d", &id, &new_id);
+	int n = sscanf(arg, "%u %u", &id, &new_id);
 	if(n != 2)
 	{
 		_PRINTF("Wrong format\n");
@@ -288,17 +288,17 @@ int can_id_cb(const char *arg, int l)
 	return CON_CB_SILENT;
 }
 
-int can_baud_cb(const char *arg, int l)
+static int can_baud_cb(const char *arg, int l)
 {
 	unsigned int baud = 0;
-	int n = sscanf(arg, "%d", &baud);
+	int n = sscanf(arg, "%u", &baud);
 	if(n != 1 || baud <= 0)
 	{
 		_PRINTF("Wrong format, current baud: %d\n", pending_can_baud * 1000);
 		return CON_CB_SILENT;
 	}
 
-	if(can_drv_check_set_bitrate(CO->CANmodule->CANptr, (int32_t)(baud * 1000U), false) != (int32_t)(baud * 1000U))
+	if(can_drv_check_set_bitrate(CO->CANmodule->CANptr, (int32_t)(baud * 1000), false) != (int32_t)(baud * 1000))
 	{
 		_PRINTF("Error! Baud %d not supported\n");
 		return CON_CB_SILENT;
@@ -376,19 +376,19 @@ int can_baud_cb(const char *arg, int l)
 		return CON_CB_SILENT;                                                               \
 	}
 
-#define RSDO_T(ID, IDX, SUBIDX, VAL, TYPE)                                                          \
+#define RSDO_T(ID, IDX, SUBIDX, VAL, TYPE)                                                   \
 	rd = sizeof(TYPE);                                                                       \
 	sts = read_SDO(CO->SDOclient, ID, IDX, SUBIDX, (uint8_t *)&VAL, sizeof(TYPE), &rd, 800); \
 	if(sts != 0 || rd != sizeof(TYPE))                                                       \
-	{                                                                                       \
-		_PRINTF("SDO read %d abort: x%x (x%x:x%x)\n", id, sts, IDX, SUBIDX);                                       \
-		return CON_CB_SILENT;                                                               \
+	{                                                                                        \
+		_PRINTF("SDO read %d abort: x%x (x%x:x%x)\n", id, sts, IDX, SUBIDX);                 \
+		return CON_CB_SILENT;                                                                \
 	}
 
-int can_meteo_cb(const char *arg, int l)
+static int can_meteo_cb(const char *arg, int l)
 {
 	unsigned int id = 0;
-	int n = sscanf(arg, "%d", &id);
+	int n = sscanf(arg, "%u", &id);
 	if(n != 1)
 	{
 		_PRINTF("Wrong format!\n");
@@ -469,7 +469,7 @@ int can_meteo_cb(const char *arg, int l)
 	_PRINTF("%d | Temp: ", v_u32);
 	RSDO(id, 0x6101, 2, v_i16);
 	_PRINTF("%d\n", v_i16);
-	
+
 	_PRINTF("AHT21: Temp: ");
 	RSDO(id, 0x6103, 1, v_i16);
 	_PRINTF("%d | Hum: ", v_i16);
@@ -482,12 +482,12 @@ int can_meteo_cb(const char *arg, int l)
 	RSDO(id, 0x6102, 0xa, v_u16);
 	_PRINTF("%d\n", v_u16);
 	uint32_t head[8];
-	for(uint32_t i=0x2; i<=0x9; i++)
+	for(uint32_t i = 0x2; i <= 0x9; i++)
 	{
 		RSDO(id, 0x6102, i, head[i - 0x2]);
 	}
 	_PRINTF("E %d NE %d N %d NW %d W %d SW %d S %d SE %d\n",
-		head[0], head[1], head[2], head[3], head[4], head[5], head[6], head[7]);
+			head[0], head[1], head[2], head[3], head[4], head[5], head[6], head[7]);
 
 	_PRINTF("RainA: ");
 	RSDO(id, 0x6102, 0xb, v_u32);

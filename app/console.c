@@ -11,18 +11,28 @@
 #include "fw_header.h"
 #include "load_switcher.h"
 #include "lss_helper.h"
+#include "lwip/stats.h"
 #include "pc.h"
 #include "platform.h"
+#include "rtc.h"
 #include "sdo.h"
 #include "sock_cli.h"
 #include <ctype.h>
-#include <stdio.h>
 #include <string.h>
+
+#undef BYTE_ORDER
+#undef LITTLE_ENDIAN
+#undef BIG_ENDIAN
+#include <stdio.h>
+
+extern int gsts;
+
+extern uint32_t lwip_assert_counter;
 
 extern CO_t *CO;
 #include "console_can.h"
 
-int fw_cb(const char *arg, int l)
+static int fw_cb(const char *arg, int l)
 {
 	_PRINTF("Reset from: %s\n", paltform_reset_cause_get());
 	fw_header_check_all();
@@ -43,13 +53,13 @@ int fw_cb(const char *arg, int l)
 	return CON_CB_SILENT;
 }
 
-int reset_cb(const char *arg, int l)
+static int reset_cb(const char *arg, int l)
 {
 	platform_reset();
 	return CON_CB_SILENT;
 }
 
-int ip_cb(const char *arg, int l)
+static int ip_cb(const char *arg, int l)
 {
 	unsigned int a = 0, b = 0, c = 0, d = 0;
 	int n = sscanf(arg, "%u.%u.%u.%u", &a, &b, &c, &d);
@@ -80,7 +90,89 @@ int ip_cb(const char *arg, int l)
 	return CON_CB_SILENT;
 }
 
-int read_cb(const char *arg, int l)
+static int sock_mst_ip_cb(const char *arg, int l)
+{
+	unsigned int a = 0, b = 0, c = 0, d = 0;
+	int n = sscanf(arg, "%u.%u.%u.%u", &a, &b, &c, &d);
+
+	while(isspace((int)*arg) && (*arg != 0))
+	{
+		arg++;
+	}
+
+	if(!*arg)
+	{
+		_PRINTF("Current MASTER slv IP: %d.%d.%d.%d\n", g_ip_addr_master[0], g_ip_addr_master[1], g_ip_addr_master[2], g_ip_addr_master[3]);
+		return CON_CB_SILENT;
+	}
+
+	if((n != 4) || (a > 255) || (b > 255) || (c > 255) || (d > 255))
+	{
+		_PRINTF("Bad address\n");
+		return CON_CB_ERR_BAD_PARAM;
+	}
+
+	g_ip_addr_master[0] = a;
+	g_ip_addr_master[1] = b;
+	g_ip_addr_master[2] = c;
+	g_ip_addr_master[3] = d;
+
+	_PRINTF("OK, New IP: %d.%d.%d.%d\n", g_ip_addr_master[0], g_ip_addr_master[1], g_ip_addr_master[2], g_ip_addr_master[3]);
+	return CON_CB_SILENT;
+}
+
+static int sock_gw_ip_cb(const char *arg, int l)
+{
+	unsigned int ptr = 0, a = 0, b = 0, c = 0, d = 0;
+	int n = sscanf(arg, "%u:%u.%u.%u.%u", &ptr, &a, &b, &c, &d);
+
+	while(isspace((int)*arg) && (*arg != 0))
+	{
+		arg++;
+	}
+
+	if(!*arg)
+	{
+		_PRINTF("Current GW slv IP:\n");
+		for(uint32_t i = 0; i < GW_COUNT; i++)
+		{
+			_PRINTF("\t%d.%d.%d.%d\n", g_ip_addr_gw[4 * i + 0], g_ip_addr_gw[4 * i + 1], g_ip_addr_gw[4 * i + 2], g_ip_addr_gw[4 * i + 3]);
+		}
+		return CON_CB_SILENT;
+	}
+
+	if(n != 5)
+	{
+		_PRINTF("Bad args\n");
+		return CON_CB_ERR_BAD_PARAM;
+	}
+
+	if(ptr >= GW_COUNT)
+	{
+		_PRINTF("Bad selector, max is %d\n", GW_COUNT);
+		return CON_CB_ERR_BAD_PARAM;
+	}
+
+	if((a > 255) || (b > 255) || (c > 255) || (d > 255))
+	{
+		_PRINTF("Bad address\n");
+		return CON_CB_ERR_BAD_PARAM;
+	}
+
+	g_ip_addr_gw[4 * ptr + 0] = a;
+	g_ip_addr_gw[4 * ptr + 1] = b;
+	g_ip_addr_gw[4 * ptr + 2] = c;
+	g_ip_addr_gw[4 * ptr + 3] = d;
+
+	_PRINTF("OK, New GW slv IP:\n");
+	for(uint32_t i = 0; i < GW_COUNT; i++)
+	{
+		_PRINTF("\t%d.%d.%d.%d\n", g_ip_addr_gw[4 * i + 0], g_ip_addr_gw[4 * i + 1], g_ip_addr_gw[4 * i + 2], g_ip_addr_gw[4 * i + 3]);
+	}
+	return CON_CB_SILENT;
+}
+
+static int read_cb(const char *arg, int l)
 {
 	int sts = config_validate();
 	if(sts == 0) config_read_storage();
@@ -108,7 +200,7 @@ int read_cb(const char *arg, int l)
 	return CON_CB_SILENT;
 }
 
-int save_cb(const char *arg, int l)
+static int save_cb(const char *arg, int l)
 {
 	int sts = config_write_storage();
 	if(sts != 0) _PRINTF("SAVE ERROR: %d\n", sts);
@@ -120,28 +212,28 @@ int save_cb(const char *arg, int l)
 	return CON_CB_SILENT;
 }
 
-int cfg_state_cb(const char *arg, int l)
+static int cfg_state_cb(const char *arg, int l)
 {
 	int sts = config_validate();
 	_PRINTF("Config status: %d\n", sts);
 	return CON_CB_SILENT;
 }
 
-int lon_cb(const char *arg, int l)
+static int lon_cb(const char *arg, int l)
 {
 	load_switcher_on();
 	_PRINTF("on ok\n");
 	return CON_CB_SILENT;
 }
 
-int loff_cb(const char *arg, int l)
+static int loff_cb(const char *arg, int l)
 {
 	load_switcher_off();
 	_PRINTF("off ok\n");
 	return CON_CB_SILENT;
 }
 
-int adc_cb(const char *arg, int l)
+static int adc_cb(const char *arg, int l)
 {
 	_PRINTF("VIN:  %.2f\n", adc_val.vin);
 	_PRINTF("VOUT: %.2f\n", adc_val.vout);
@@ -151,10 +243,10 @@ int adc_cb(const char *arg, int l)
 	return CON_CB_SILENT;
 }
 
-int pc_cb(const char *arg, int l)
+static int pc_cb(const char *arg, int l)
 {
 	unsigned int v = 0;
-	int n = sscanf(arg, "%d", &v);
+	int n = sscanf(arg, "%u", &v);
 	if(n == 1)
 	{
 		pc_switch();
@@ -164,27 +256,60 @@ int pc_cb(const char *arg, int l)
 	return CON_CB_SILENT;
 }
 
-int energy_cb(const char *arg, int l)
+static int energy_cb(const char *arg, int l)
 {
 	_PRINTF("Energy: %.3f | Power: %.3f\n", emeter_get_energy_kwh(), emeter_get_power_kw());
 	return CON_CB_SILENT;
 }
 
-static struct tcp_pcb *cc_sock=NULL;
-
-int cli_cb(const char *arg, int l)
+static int sli_cb(const char *arg, int l)
 {
-	uint8_t ipaddr[] = {7, 7, 7, 1};
-	int sts = sock_cli_init(&cc_sock, ipaddr, 5000);
-	_PRINTF("STS: %d\n", sts);
+	_PRINTF("lwip_assert_counter %d\n", lwip_assert_counter);
+	// _PRINTF("state1: %d\n", sock_cli_get_state(cc_sock));
+	// _PRINTF("state2: x%x\n", cc_sock->state);
+
+	struct stats_mem *mem = &lwip_stats.mem;
+	_PRINTF("\tavail: %" U32_F "\n\t", (u32_t)mem->avail);
+	_PRINTF("used: %" U32_F "\n\t", (u32_t)mem->used);
+	_PRINTF("max: %" U32_F "\n\t", (u32_t)mem->max);
+	_PRINTF("err: %" U32_F "\n", (u32_t)mem->err);
+
+	// _PRINTF("Trying ...\n");
+	// struct pbuf *p[25];
+	// for(uint32_t i = 0; i < 25; i++)
+	// {
+	// 	p[i] = pbuf_alloc(PBUF_TRANSPORT, 7, PBUF_POOL);
+	// 	_PRINTF("ALLOC %d x%x\n", i, p[i]);
+	// 	_PRINTF("pb free ref %d\n", p[i]->ref);
+	// 	int r = pbuf_free(p[i]);
+	// 	_PRINTF("DEALLOC %d x%x\n", i, r);
+	// }
+
 	return CON_CB_OK;
 }
 
-int sli_cb(const char *arg, int l)
+static int rtc_cb(const char *arg, int l)
 {
-	_PRINTF("state1: %d\n", sock_cli_get_state(cc_sock));
-	_PRINTF("state2: x%x\n", cc_sock->state);
-	return CON_CB_OK;
+	RTC_DateTypeDef d;
+	RTC_TimeTypeDef t;
+	mcu_rtc_get_date(&d);
+	mcu_rtc_get_time(&t);
+	_PRINTF("gs %d\n", gsts);
+	_PRINTF("RTC: %d %d %d : %d - %d %d %d\n", d.RTC_Month, d.RTC_Date, d.RTC_Year, d.RTC_WeekDay, t.RTC_Hours, t.RTC_Minutes, t.RTC_Seconds);
+	return CON_CB_SILENT;
+}
+
+static int co_gtw_cb(const char *arg, int l)
+{
+	while(*arg == ' ')
+		arg++;
+	if(!arg) return CON_CB_ERR_ARGS;
+	_PRINTF("gtw(%d):", strlen(arg));
+	for(uint32_t i = 0; i < strlen(arg); i++)
+		_PRINTF("x%x ", arg[i]);
+	size_t len = CO_GTWA_write(CO->gtwa, arg, strlen(arg));
+	_PRINTF("\ngtw act (%d)\n", len);
+	return CON_CB_SILENT;
 }
 
 const console_cmd_t console_cmd[] = {
@@ -198,6 +323,10 @@ const console_cmd_t console_cmd[] = {
 	{"loff", loff_cb},
 	{"adc", adc_cb},
 	{"pc", pc_cb},
+	{"rtc", rtc_cb},
+
+	{"sock_mst_ip", sock_mst_ip_cb},
+	{"sock_gw_ip", sock_gw_ip_cb},
 
 	{"chb", can_hb_cb},
 	{"cfw", can_fw_cb},
@@ -216,8 +345,10 @@ const console_cmd_t console_cmd[] = {
 	{"cmeteo", can_meteo_cb},
 
 	{"energy", energy_cb},
-	{"cli", cli_cb},
+	// {"cli", cli_cb},
 	{"sli", sli_cb},
+
+	{"gtw", co_gtw_cb},
 };
 
 const uint32_t console_cmd_sz = sizeof(console_cmd) / sizeof(console_cmd[0]);

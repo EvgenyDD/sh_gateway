@@ -46,7 +46,7 @@ typedef int (*console_cmd_cb_t)(const char *, int);
 
 typedef struct
 {
-	char *name;
+	const char *name;
 	console_cmd_cb_t cb;
 } console_cmd_t;
 
@@ -59,8 +59,8 @@ int console_udp_init(void);
 
 #include "netconf.h"
 
-#define PRINTF(format...) \
-	_PRINT_PREFIX();      \
-	_PRINTF(format);
+#define PRINTF(...)  \
+	_PRINT_PREFIX(); \
+	_PRINTF(__VA_ARGS__);
 
 #endif // CONSOLE_UDP_H__

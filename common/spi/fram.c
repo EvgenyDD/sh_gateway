@@ -19,6 +19,8 @@
 #define FRAM_CMD_RDID 0x9F
 #define FRAM_CMD_SNR 0xC3
 
+fram_entries_t fram_data;
+
 int fram_init(void)
 {
 	// D8 - CS
@@ -46,6 +48,35 @@ int fram_init(void)
 	CS_H;
 
 	return 0;
+}
+
+void fram_data_read(void)
+{
+	uint8_t data_rx[128];
+	for(uint32_t i = 0; i * sizeof(data_rx) < sizeof(fram_data); i++)
+	{
+		fram_read(i * sizeof(data_rx), data_rx, sizeof(data_rx));
+		memcpy(&(((uint8_t *)&fram_data)[i * sizeof(data_rx)]),
+			   data_rx,
+			   (i + 1) * sizeof(data_rx) > sizeof(fram_data)
+				   ? (i + 1) * sizeof(data_rx) - sizeof(fram_data)
+				   : sizeof(data_rx));
+	}
+}
+
+void fram_data_write(void)
+{
+	uint8_t data_tx[128];
+	for(uint32_t i = 0; i * sizeof(data_tx) < sizeof(fram_data); i++)
+	{
+		size_t q = (i + 1) * sizeof(data_tx) > sizeof(fram_data)
+					   ? (i + 1) * sizeof(data_tx) - sizeof(fram_data)
+					   : sizeof(data_tx);
+		memcpy(data_tx,
+			   &(((uint8_t *)&fram_data)[i * sizeof(data_tx)]),
+			   q);
+		fram_write(i * sizeof(data_tx), data_tx, q);
+	}
 }
 
 uint8_t fram_read_sts(void)
@@ -81,7 +112,11 @@ int fram_read(uint32_t addr, uint8_t *data, uint32_t size)
 {
 	if(addr + size >= FRAM_SIZE) return FRAM_ERR_ADDR_OVF;
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wvla"
 	uint8_t data_tx[4 + size], data_rx[4 + size];
+#pragma GCC diagnostic pop
+
 	data_tx[0] = FRAM_CMD_READ;
 	data_tx[1] = (addr >> 16) & 0xFF;
 	data_tx[2] = (addr >> 8) & 0xFF;
@@ -93,13 +128,19 @@ int fram_read(uint32_t addr, uint8_t *data, uint32_t size)
 
 	return 0;
 }
+
 uint8_t stss;
+
 int fram_write(uint32_t addr, const uint8_t *data, uint32_t size)
 {
 	if(addr + size >= FRAM_SIZE) return FRAM_ERR_ADDR_OVF;
 
-	// disable write protection
+// disable write protection
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wvla"
 	uint8_t data_tx[4 + size], data_rx[4 + size];
+#pragma GCC diagnostic pop
+
 	data_tx[0] = FRAM_CMD_WR_EN;
 	CS_L;
 	spi_trx(data_tx, data_rx, 1);

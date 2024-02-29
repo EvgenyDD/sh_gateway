@@ -3,12 +3,18 @@
 
 #define SAMPLE_ACC_COUNT 128
 
+#define VREFINT_CAL_ADDR 0x1FFF7A2A
+#define TS_CAL1_ADDR 0x1FFF7A2C
+#define TS_CAL2_ADDR 0x1FFF7A2E
+
 enum
 {
 	ADC_CH_VOUT = 0,
 	ADC_CH_VIN,
 	ADC_CH_IR,
 	ADC_CH_I_SNS,
+	ADC_CH_T_MCU,
+	ADC_CH_VREFINT,
 	ADC_CH,
 };
 
@@ -17,6 +23,8 @@ adc_val_t adc_val = {0};
 static volatile uint16_t adc_buf[ADC_CH];
 static volatile uint32_t adc_buf_acc[ADC_CH][SAMPLE_ACC_COUNT] = {0};
 static volatile uint32_t adc_buf_ptr = 0;
+
+static float adcVREFINTCAL, adcTSCAL1, adcTSSlopeK;
 
 void adc_init(void)
 {
@@ -72,6 +80,8 @@ void adc_init(void)
 	ADC_RegularChannelConfig(ADC1, ADC_Channel_3, 2, ADC_SampleTime_480Cycles); // PA3
 	ADC_RegularChannelConfig(ADC1, ADC_Channel_5, 3, ADC_SampleTime_480Cycles); // PA5
 	ADC_RegularChannelConfig(ADC1, ADC_Channel_6, 4, ADC_SampleTime_480Cycles); // PA6
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_TempSensor, 5, ADC_SampleTime_480Cycles);
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_Vrefint, 6, ADC_SampleTime_480Cycles);
 
 	ADC_DMARequestAfterLastTransferCmd(ADC1, ENABLE);
 
@@ -80,17 +90,24 @@ void adc_init(void)
 	ADC_Cmd(ADC1, ENABLE);
 	ADC_ContinuousModeCmd(ADC1, ENABLE);
 
+	ADC_TempSensorVrefintCmd(ENABLE);
+
 	ADC_SoftwareStartConv(ADC1);
+
+	adcVREFINTCAL = *(uint16_t *)VREFINT_CAL_ADDR;
+	adcTSCAL1 = *(uint16_t *)TS_CAL1_ADDR;
+	float adcTSCAL2 = *(uint16_t *)TS_CAL2_ADDR;
+	adcTSSlopeK = (110.0f - 30.0f) / (adcTSCAL2 - adcTSCAL1);
 }
 
 void adc_track(void)
 {
 	volatile uint32_t buf_acc[ADC_CH] = {0};
 
-	for(uint32_t i=0; i<ADC_CH; i++)
+	for(uint32_t i = 0; i < ADC_CH; i++)
 	{
 		adc_buf_acc[i][adc_buf_ptr] = adc_buf[i];
-		for(uint32_t j=0; j<SAMPLE_ACC_COUNT; j++)
+		for(uint32_t j = 0; j < SAMPLE_ACC_COUNT; j++)
 		{
 			buf_acc[i] += adc_buf_acc[i][j];
 		}
@@ -101,6 +118,6 @@ void adc_track(void)
 	adc_val.vin = (float)buf_acc[ADC_CH_VIN] / 4095.0f * 3.3f * (1.0f + 100.0f / 10.0f);
 	adc_val.vout = (float)buf_acc[ADC_CH_VOUT] / 4095.0f * 3.3f * (1.0f + 100.0f / 10.0f);
 	adc_val.i_sns = (float)(2048 - buf_acc[ADC_CH_I_SNS]) / (0.02f * 20.0f / 3.3f * 4095.0f); // 2mA quant
-
 	adc_val.ir = adc_buf[ADC_CH_IR];
+	adc_val.t_mcu = ((float)buf_acc[ADC_CH_T_MCU] * adcVREFINTCAL / (float)buf_acc[ADC_CH_VREFINT] - adcTSCAL1) * adcTSSlopeK + 30.0f;
 }

@@ -26,12 +26,12 @@ typedef struct
 	int block;
 
 	/* total number of bytes transferred */
-	int tot_bytes;
+	uint32_t tot_bytes;
 } tftp_connection_args;
 
 struct udp_pcb *UDPpcb;
 
-char *tftp_errorcode_string[] = {
+const char *tftp_errorcode_string[] = {
 	"not defined",
 	"file not found",
 	"access violation",
@@ -60,11 +60,11 @@ static void tftp_cleanup_wr(struct udp_pcb *upcb, tftp_connection_args *args)
 	udp_recv(UDPpcb, recv_callback_tftp, NULL);
 }
 
-static int tftp_construct_error_message(char *buf, tftp_errorcode err)
+static uint32_t tftp_construct_error_message(char *buf, tftp_errorcode err)
 {
 	tftp_set_opcode(buf, TFTP_ERROR);
 	tftp_set_errorcode(buf, err);
-	char *s = err >= sizeof(tftp_errorcode_string) / sizeof(tftp_errorcode_string[0]) ? "unknown" : tftp_errorcode_string[err];
+	const char *s = err >= sizeof(tftp_errorcode_string) / sizeof(tftp_errorcode_string[0]) ? "unknown" : tftp_errorcode_string[err];
 	tftp_set_errormsg(buf, s);
 	return 4 + strlen(s) + 1;
 }
@@ -83,11 +83,11 @@ static int tftp_send_error_message(struct udp_pcb *upcb, struct ip_addr *to, int
 {
 	PRINTF("TFTP abt: %d\n", err);
 	char buf[512];
-	int error_len = tftp_construct_error_message(buf, err);
+	uint32_t error_len = tftp_construct_error_message(buf, err);
 	return tftp_send_message(upcb, to, to_port, buf, error_len);
 }
 
-int tftp_send_ack_packet(struct udp_pcb *upcb, struct ip_addr *to, int to_port, unsigned short block)
+static int tftp_send_ack_packet(struct udp_pcb *upcb, struct ip_addr *to, int to_port, unsigned short block)
 {
 	char packet[TFTP_ACK_PKT_LEN];
 	tftp_set_opcode(packet, TFTP_ACK);
@@ -170,7 +170,7 @@ static void wrq_recv_callback(void *arg, struct udp_pcb *upcb, struct pbuf *pkt_
  * @param  to_port: pointer on remote udp port
  * @retval None
  */
-void tftp_rd_send_next_block(struct udp_pcb *upcb, tftp_connection_args *args, struct ip_addr *to_ip, u16_t to_port)
+static void tftp_rd_send_next_block(struct udp_pcb *upcb, tftp_connection_args *args, struct ip_addr *to_ip, u16_t to_port)
 {
 	int sts = tftp_cb.read(args->tot_bytes, (uint8_t *)args->data, TFTP_DATA_LEN_MAX, &args->data_len);
 	if(sts)
@@ -197,7 +197,7 @@ void tftp_rd_send_next_block(struct udp_pcb *upcb, tftp_connection_args *args, s
  * @param  port: pointer on remote udp port
  * @retval None
  */
-void rrq_recv_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p, struct ip_addr *addr, u16_t port)
+static void rrq_recv_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p, struct ip_addr *addr, u16_t port)
 {
 	tftp_connection_args *args = (tftp_connection_args *)arg;
 

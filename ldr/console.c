@@ -5,10 +5,9 @@
 #include "fw_header.h"
 #include "platform.h"
 #include <ctype.h>
-#include <stdio.h>
 #include <string.h>
 
-int fw_cb(const char *arg, int l)
+static int fw_cb(const char *arg, int l)
 {
 	_PRINTF("Reset from: %s\n", paltform_reset_cause_get());
 	fw_header_check_all();
@@ -29,7 +28,7 @@ int fw_cb(const char *arg, int l)
 	return CON_CB_SILENT;
 }
 
-int save_cb(const char *arg, int l)
+static int save_cb(const char *arg, int l)
 {
 	int sts = config_write_storage();
 	if(sts != 0) _PRINTF("SAVE ERROR: %d\n", sts);
@@ -41,13 +40,14 @@ int save_cb(const char *arg, int l)
 	return CON_CB_SILENT;
 }
 
-int cfg_state_cb(const char *arg, int l)
+static int cfg_state_cb(const char *arg, int l)
 {
 	int sts = config_validate();
 	_PRINTF("Config status: %d\n", sts);
 	return CON_CB_SILENT;
 }
-int reset_cb(const char *arg, int l)
+
+static int reset_cb(const char *arg, int l)
 {
 	platform_reset();
 	return CON_CB_SILENT;

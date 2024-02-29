@@ -85,6 +85,9 @@ extern const uint8_t  APBPrescTable[8];     /*!< APB prescalers table values */
   
 extern void SystemInit(void);
 extern void SystemCoreClockUpdate(void);
+
+void NMI_Handler(void);
+
 /**
   * @}
   */

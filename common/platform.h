@@ -5,11 +5,14 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#define GW_COUNT 5
+
 #define _BV(x) (1ULL << (x))
 
 #define PAGE_SIZE (2 * 1024)
 
-#define FLASH_LEN (0x00040000U) // 256kB
+#define FLASH_LEN (0x00040000U) // 256kB TODO: BUG HERE !!!!!!!!
+// #define FLASH_LEN (0x00100000U) // 1024kB 
 #define FLASH_START FLASH_BASE
 #define FLASH_ORIGIN FLASH_BASE
 #define FLASH_FINISH (FLASH_BASE + FLASH_LEN)
@@ -52,6 +55,8 @@ extern int __app_start, __app_end;
 extern int __header_offset;
 
 extern uint8_t g_ip_address[4];
+extern uint8_t g_ip_addr_master[4];
+extern uint8_t g_ip_addr_gw[4 * GW_COUNT];
 extern uint32_t g_uid[3];
 extern volatile uint64_t system_time;
 extern uint16_t pending_can_baud;

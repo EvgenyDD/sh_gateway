@@ -1,8 +1,8 @@
 EXE_NAME=sh_gw_ldr
-PRODUCT = sh_gw
+PRODUCT =sh_gw
 VER_MAJ = 1
 VER_MIN = 0
-VER_PATCH = 0
+VER_PATCH = 1
 MAKE_BINARY=yes
 
 TCHAIN = arm-none-eabi-
@@ -11,23 +11,26 @@ CDIALECT = gnu99
 OPT_LVL = 2
 DBG_OPTS = -gdwarf-2 -ggdb -g
 
-CFLAGS   += -fdata-sections -ffunction-sections 
+CFLAGS   += -fvisibility=hidden -funsafe-math-optimizations -fdata-sections -ffunction-sections -fno-move-loop-invariants
+CFLAGS   += -fmessage-length=0 -fno-exceptions -fno-common -fno-builtin -ffreestanding
 CFLAGS   += -fsingle-precision-constant
-CFLAGS   += -fmessage-length=0
-CFLAGS   += -fno-exceptions -funsafe-math-optimizations
-CFLAGS   += -fno-move-loop-invariants -ffreestanding
-CFLAGS   += -Wno-pointer-sign -Wswitch-default -Wshadow -Wno-unused
-CFLAGS   += -Wall -Wstrict-prototypes -Wdisabled-optimization -Wformat=2 -Winit-self  -Wmissing-include-dirs
-CFLAGS   += -Wstrict-overflow=2
-CFLAGS   += -Werror
+CFLAGS   += $(C_FULL_FLAGS)
+# CFLAGS   += -Werror
 
-EXT_LIBS +=c nosys
+CXXFLAGS += -fvisibility=hidden -funsafe-math-optimizations -fdata-sections -ffunction-sections -fno-move-loop-invariants
+CXXFLAGS += -fmessage-length=0 -fno-exceptions -fno-common -fno-builtin -ffreestanding
+CXXFLAGS += -fvisibility-inlines-hidden -fuse-cxa-atexit -felide-constructors -fno-rtti
+CXXFLAGS += -fsingle-precision-constant
+CXXFLAGS += $(CXX_FULL_FLAGS)
+CXXFLAGS += -Werror
 
 LDFLAGS  += -specs=nano.specs
 LDFLAGS  += -Wl,--gc-sections
 LDFLAGS  += -Wl,--print-memory-usage
 
-PPDEFS += USE_STDPERIPH_DRIVER STM32F40_41xxx FW_HEADER_REDUCED PROD_NAME=\"$(PROD_NAME)\" FW_TYPE=FW_LDR DEV=\"GWLDR\" CFG_SYSTEM_SAVES_NON_NATIVE_DATA=1
+EXT_LIBS +=c nosys
+
+PPDEFS += USE_STDPERIPH_DRIVER STM32F40_41xxx STM32F407xx FW_HEADER_REDUCED FW_TYPE=FW_LDR DEV=\"GWLDR\" CFG_SYSTEM_SAVES_NON_NATIVE_DATA=1
 
 INCDIR += .
 INCDIR += ../common
@@ -70,22 +73,24 @@ SOURCES += $(wildcard ../common/lwip/src/core/snmp/*.c)
 SOURCES += $(wildcard ../common/lwip/src/core/netif/*.c)
 SOURCES += $(wildcard ../common/lwip/src/core/netif/ppp/*.c)
 SOURCES += $(wildcard ../common/lwip/src/netif/*.c)
-
 SOURCES += $(wildcard *.c)
 LDSCRIPT += ../ldscript/ldr.ld
 
-SIGNED_BINARY = $(EXE_NAME)_signed.bin
+BINARY_SIGNED = $(BUILDDIR)/$(EXE_NAME)_signed.bin
+BINARY_MERGED = $(BUILDDIR)/$(PRODUCT)_ldr_preldr_signed.bin
+SIGN = $(BUILDDIR)/sign
+ARTEFACTS += $(BINARY_SIGNED)
 
-ARTEFACTS += $(SIGNED_BINARY)
+PRELDR_SIGNED = ../preldr/build/$(PRODUCT)_preldr_signed.bin
+EXT_MAKE_TARGETS = $(PRELDR_SIGNED)
 
 include ../common/core.mk
 
-signer:
-	@make -C ../signer_fw_tool -j
+$(SIGN): ../sign/sign.c
+	@gcc $< -o $@
 
-# @../signer_fw_tool/signer_fw_tool* $(BINARY) $(BUILDDIR)/$(SIGNED_BINARY) 32768 
-$(SIGNED_BINARY): $(BINARY) signer
-	@../signer_fw_tool/signer_fw_tool* $(BINARY) $(BUILDDIR)/$(SIGNED_BINARY) 49152 \
+$(BINARY_SIGNED): $(BINARY) $(SIGN)
+	@$(SIGN) $(BINARY) $@ 49152 \
 		prod=$(PRODUCT) \
 		prod_name=$(EXE_NAME) \
 		ver_maj=$(VER_MAJ) \
@@ -93,8 +98,34 @@ $(SIGNED_BINARY): $(BINARY) signer
 		ver_pat=$(VER_PATCH) \
 		build_ts=$$(date -u +'%Y%m%d_%H%M%S')
 
-flash: $(SIGNED_BINARY)
-	@openocd -f ../target/stm32f4xx.cfg -c "program $(BUILDDIR)/$(SIGNED_BINARY) 0x08004000 verify reset exit" 
+$(BINARY_MERGED): $(EXT_MAKE_TARGETS) $(BINARY_SIGNED)
+	@echo " [Merging binaries] ..." {$@}
+	@cp -f $< $@
+	@dd if=$(BINARY_SIGNED) of=$@ bs=1 oflag=append seek=16384 status=none
+
+.PHONY: composite
+composite: $(BINARY_MERGED)
+
+.PHONY: clean
+clean: clean_ext_targets
+
+.PHONY: clean_ext_targets
+clean_ext_targets:
+	$(foreach var,$(EXT_MAKE_TARGETS),$(MAKE) -C $(subst build/,,$(dir $(var))) clean;)
+
+.PHONY: $(EXT_MAKE_TARGETS)
+$(EXT_MAKE_TARGETS):
+	@$(MAKE) -C $(subst build/,,$(dir $@)) --no-print-directory
+
+#####################
+### FLASH & DEBUG ###
+#####################
+
+flash: $(BINARY_SIGNED)
+	openocd -d0 -f ../target/stm32f4xx.cfg -c "program $< 0x08004000 verify reset exit" 
+
+flash_all: $(BINARY_MERGED)
+	openocd -d0 -f ../target/stm32f4xx.cfg -c "program $< 0x08000000 verify reset exit" 
 
 debug:
 	@echo "file $(EXECUTABLE)" > .gdbinit
@@ -107,11 +138,11 @@ define tftp_flash
 	@atftp --verbose -p -r sh_gw_ldr -l $(2) 192.168.0.$(1)
 endef
 
-101: $(SIGNED_BINARY)
-	$(call tftp_flash,$@,$(BUILDDIR)/$(SIGNED_BINARY))
-102: $(SIGNED_BINARY)
-	$(call tftp_flash,$@,$(BUILDDIR)/$(SIGNED_BINARY))
-103: $(SIGNED_BINARY)
-	$(call tftp_flash,$@,$(BUILDDIR)/$(SIGNED_BINARY))
-200: $(SIGNED_BINARY)
-	$(call tftp_flash,$@,$(BUILDDIR)/$(SIGNED_BINARY))
+101: $(BINARY_SIGNED)
+	$(call tftp_flash,$@,$<)
+102: $(BINARY_SIGNED)
+	$(call tftp_flash,$@,$<)
+103: $(BINARY_SIGNED)
+	$(call tftp_flash,$@,$<)
+200: $(BINARY_SIGNED)
+	$(call tftp_flash,$@,$<)

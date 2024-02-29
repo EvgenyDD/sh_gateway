@@ -53,7 +53,7 @@ const uint8_t APBPrescTable[8] = {0, 0, 0, 0, 1, 2, 3, 4};
 static void SystemInit_ExtMemCtl(void);
 #endif /* DATA_IN_ExtSRAM || DATA_IN_ExtSDRAM */
 
-void clock_reinit(void)
+static void clock_reinit(void)
 {
 	RCC_DeInit();
 	RCC_HSEConfig(RCC_HSE_ON);

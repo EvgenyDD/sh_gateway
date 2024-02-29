@@ -104,7 +104,10 @@ tcp_output_alloc_header(struct tcp_pcb *pcb, u16_t optlen, u16_t datalen,
     tcphdr->dest = htons(pcb->remote_port);
     tcphdr->seqno = seqno_be;
     tcphdr->ackno = htonl(pcb->rcv_nxt);
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
     TCPH_HDRLEN_FLAGS_SET(tcphdr, (5 + optlen / 4), TCP_ACK);
+#pragma GCC diagnostic pop
     tcphdr->wnd = htons(pcb->rcv_ann_wnd);
     tcphdr->chksum = 0;
     tcphdr->urgp = 0;
@@ -351,7 +354,7 @@ tcp_write_checks(struct tcp_pcb *pcb, u16_t len)
  * @return ERR_OK if enqueued, another err_t on error
  */
 err_t
-tcp_write(struct tcp_pcb *pcb, const void *arg, u16_t len, u8_t apiflags)
+tcp_write(struct tcp_pcb *pcb, void *arg, u16_t len, u8_t apiflags)
 {
   struct pbuf *concat_p = NULL;
   struct tcp_seg *last_unsent = NULL, *seg = NULL, *prev_seg = NULL, *queue = NULL;
@@ -482,7 +485,7 @@ tcp_write(struct tcp_pcb *pcb, const void *arg, u16_t len, u8_t apiflags)
 #if TCP_OVERSIZE_DBGCHECK
         last_unsent->oversize_left += oversize;
 #endif /* TCP_OVERSIZE_DBGCHECK */
-        TCP_DATA_COPY2(concat_p->payload, (u8_t*)arg + pos, seglen, &concat_chksum, &concat_chksum_swapped);
+        TCP_DATA_COPY2(concat_p->payload, (const u8_t*)arg + pos, seglen, &concat_chksum, &concat_chksum_swapped);
 #if TCP_CHECKSUM_ON_COPY
         concat_chksummed += seglen;
 #endif /* TCP_CHECKSUM_ON_COPY */
@@ -538,7 +541,7 @@ tcp_write(struct tcp_pcb *pcb, const void *arg, u16_t len, u8_t apiflags)
       }
       LWIP_ASSERT("tcp_write: check that first pbuf can hold the complete seglen",
                   (p->len >= seglen));
-      TCP_DATA_COPY2((char *)p->payload + optlen, (u8_t*)arg + pos, seglen, &chksum, &chksum_swapped);
+      TCP_DATA_COPY2((char *)p->payload + optlen, (const u8_t*)arg + pos, seglen, &chksum, &chksum_swapped);
     } else {
       /* Copy is not set: First allocate a pbuf for holding the data.
        * Since the referenced data is available at least until it is
@@ -991,7 +994,10 @@ tcp_output(struct tcp_pcb *pcb)
     }
 
     tcp_output_segment(seg, pcb);
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
     snd_nxt = ntohl(seg->tcphdr->seqno) + TCP_TCPLEN(seg);
+#pragma GCC diagnostic pop
     if (TCP_SEQ_LT(pcb->snd_nxt, snd_nxt)) {
       pcb->snd_nxt = snd_nxt;
     }
@@ -1066,7 +1072,10 @@ tcp_output_segment(struct tcp_seg *seg, struct tcp_pcb *pcb)
 
   /* Add any requested options.  NB MSS option is only set on SYN
      packets, so ignore it here */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstrict-aliasing"
   opts = (u32_t *)(void *)(seg->tcphdr + 1);
+#pragma GCC diagnostic pop
   if (seg->flags & TF_SEG_OPTS_MSS) {
     u16_t mss;
 #if TCP_CALCULATE_EFF_SEND_MSS
@@ -1074,7 +1083,10 @@ tcp_output_segment(struct tcp_seg *seg, struct tcp_pcb *pcb)
 #else /* TCP_CALCULATE_EFF_SEND_MSS */
     mss = TCP_MSS;
 #endif /* TCP_CALCULATE_EFF_SEND_MSS */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
     *opts = TCP_BUILD_MSS_OPTION(mss);
+#pragma GCC diagnostic pop
     opts += 1;
   }
 #if LWIP_TCP_TIMESTAMPS

@@ -181,7 +181,10 @@ ipaddr_aton(const char *cp, ip_addr_t *addr)
         val = (val * base) + (int)(c - '0');
         c = *++cp;
       } else if (base == 16 && isxdigit(c)) {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
         val = (val << 4) | (int)(c + 10 - (islower(c) ? 'a' : 'A'));
+#pragma GCC diagnostic pop
         c = *++cp;
       } else
         break;

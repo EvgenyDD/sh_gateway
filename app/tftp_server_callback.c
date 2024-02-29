@@ -2,20 +2,24 @@
 #include "fw_header.h"
 #include "platform.h"
 #include "tftp_server.h"
-#include <stdio.h>
 #include <string.h>
+
+#undef BYTE_ORDER
+#undef LITTLE_ENDIAN
+#undef BIG_ENDIAN
+#include <stdio.h>
 
 tftp_cb_t tftp_cb = {0};
 nd_fw_cb_t *g_nd_fw_cb;
 
-int cb_wr_gw_ldr(uint32_t addr, const uint8_t *data, uint32_t size)
+static int cb_wr_gw_ldr(uint32_t addr, const uint8_t *data, uint32_t size)
 {
 	if(addr != 0 && size == 0)
 	{
 		fw_header_check_all();
 		return g_fw_info[FW_LDR].locked;
 	}
-	if(addr + size > (uint32_t)&__ldr_end - (uint32_t)&__ldr_start) return 6; 
+	if(addr + size > (uint32_t)&__ldr_end - (uint32_t)&__ldr_start) return 6;
 	return platform_flash_write((uint32_t)&__ldr_start + addr, data, size);
 }
 
@@ -25,15 +29,16 @@ static int gw_read(uint32_t fw_type, uint32_t start, uint32_t end, uint32_t addr
 	{
 		end = end - start > g_fw_info[fw_type].size ? start + g_fw_info[fw_type].size : end;
 	}
-	int len = end > addr + start ? end - addr - start : 0;
+	uint32_t len = end > addr + start ? end - addr - start : 0;
 	if(len > size_buffer) len = size_buffer;
 	if(len) memcpy(data, (void *)(start + addr), len);
 	*size_read = len;
 	return 0;
 }
-int cb_gw_rd_preldr(uint32_t addr, uint8_t *data, uint32_t size_buffer, uint32_t *size_read) { return gw_read(FW_PRELDR, (uint32_t)&__preldr_start, (uint32_t)&__preldr_end, addr, data, size_buffer, size_read); }
-int cb_gw_rd_ldr(uint32_t addr, uint8_t *data, uint32_t size_buffer, uint32_t *size_read) { return gw_read(FW_LDR, (uint32_t)&__ldr_start, (uint32_t)&__ldr_end, addr, data, size_buffer, size_read); }
-int cb_gw_rd_app(uint32_t addr, uint8_t *data, uint32_t size_buffer, uint32_t *size_read) { return gw_read(FW_APP, (uint32_t)&__app_start, (uint32_t)&__app_end, addr, data, size_buffer, size_read); }
+
+static int cb_gw_rd_preldr(uint32_t addr, uint8_t *data, uint32_t size_buffer, uint32_t *size_read) { return gw_read(FW_PRELDR, (uint32_t)&__preldr_start, (uint32_t)&__preldr_end, addr, data, size_buffer, size_read); }
+static int cb_gw_rd_ldr(uint32_t addr, uint8_t *data, uint32_t size_buffer, uint32_t *size_read) { return gw_read(FW_LDR, (uint32_t)&__ldr_start, (uint32_t)&__ldr_end, addr, data, size_buffer, size_read); }
+static int cb_gw_rd_app(uint32_t addr, uint8_t *data, uint32_t size_buffer, uint32_t *size_read) { return gw_read(FW_APP, (uint32_t)&__app_start, (uint32_t)&__app_end, addr, data, size_buffer, size_read); }
 
 static struct
 {
@@ -47,11 +52,11 @@ nd_fw_cb_t nd[] = {{"sh_nd_preldr", cb_nd_rd_preldr, cb_nd_wr_preldr},
 				   {"sh_nd_ldr", cb_nd_rd_ldr, cb_nd_wr},
 				   {"sh_nd_app", cb_nd_rd_app, cb_nd_wr}};
 
-uint8_t get_can_id(const char *s)
+static uint8_t get_can_id(const char *s)
 {
 	if(*s == '\0') return 0;
 	unsigned int id = 0;
-	int n = sscanf(s, "%d", &id);
+	int n = sscanf(s, "%u", &id);
 	if(n != 1) return 0;
 	return id;
 }

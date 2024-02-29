@@ -232,7 +232,10 @@ tcp_input(struct pbuf *p, struct netif *inp)
         }
 #endif /* SO_REUSE */
       }
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstrict-aliasing"
       prev = (struct tcp_pcb *)lpcb;
+#pragma GCC diagnostic pop
     }
 #if SO_REUSE
     /* first try specific local IP */
@@ -247,7 +250,10 @@ tcp_input(struct pbuf *p, struct netif *inp)
          lookups will be faster (we exploit locality in TCP segment
          arrivals). */
       if (prev != NULL) {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstrict-aliasing"
         ((struct tcp_pcb_listen *)prev)->next = lpcb->next;
+#pragma GCC diagnostic pop
               /* our successor is the remainder of the listening list */
         lpcb->next = tcp_listen_pcbs.listen_pcbs;
               /* put this listening pcb at the head of the listening list */
@@ -1005,9 +1011,12 @@ tcp_receive(struct tcp_pcb *pcb)
 
       /* Remove segment from the unacknowledged list if the incoming
          ACK acknowlegdes them. */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
       while (pcb->unacked != NULL &&
              TCP_SEQ_LEQ(ntohl(pcb->unacked->tcphdr->seqno) +
                          TCP_TCPLEN(pcb->unacked), ackno)) {
+#pragma GCC diagnostic pop
         LWIP_DEBUGF(TCP_INPUT_DEBUG, ("tcp_receive: removing %"U32_F":%"U32_F" from pcb->unacked\n",
                                       ntohl(pcb->unacked->tcphdr->seqno),
                                       ntohl(pcb->unacked->tcphdr->seqno) +
@@ -1052,9 +1061,12 @@ tcp_receive(struct tcp_pcb *pcb)
        rationale is that lwIP puts all outstanding segments on the
        ->unsent list after a retransmission, so these segments may
        in fact have been sent once. */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
     while (pcb->unsent != NULL &&
            TCP_SEQ_BETWEEN(ackno, ntohl(pcb->unsent->tcphdr->seqno) + 
                            TCP_TCPLEN(pcb->unsent), pcb->snd_nxt)) {
+#pragma GCC diagnostic pop
       LWIP_DEBUGF(TCP_INPUT_DEBUG, ("tcp_receive: removing %"U32_F":%"U32_F" from pcb->unsent\n",
                                     ntohl(pcb->unsent->tcphdr->seqno), ntohl(pcb->unsent->tcphdr->seqno) +
                                     TCP_TCPLEN(pcb->unsent)));
@@ -1169,7 +1181,7 @@ tcp_receive(struct tcp_pcb *pcb)
          adjust the ->data pointer in the seg and the segment
          length.*/
 
-      off = pcb->rcv_nxt - seqno;
+      off = (s32_t)(pcb->rcv_nxt - seqno);
       p = inseg.p;
       LWIP_ASSERT("inseg.p != NULL", inseg.p);
       LWIP_ASSERT("insane offset!", (off < 0x7fff));

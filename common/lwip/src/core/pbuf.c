@@ -524,7 +524,7 @@ pbuf_header(struct pbuf *p, s16_t header_size_increment)
     /* Check that we aren't going to move off the end of the pbuf */
     LWIP_ERROR("increment_magnitude <= p->len", (increment_magnitude <= p->len), return 1;);
   } else {
-    increment_magnitude = header_size_increment;
+    increment_magnitude = (u16_t)header_size_increment;
 #if 0
     /* Can't assert these as some callers speculatively call
          pbuf_header() to see if it's OK.  Will return 1 below instead. */
@@ -660,7 +660,10 @@ pbuf_free(struct pbuf *p)
 #if LWIP_SUPPORT_CUSTOM_PBUF
       /* is this a custom pbuf? */
       if ((p->flags & PBUF_FLAG_IS_CUSTOM) != 0) {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstrict-aliasing"
         struct pbuf_custom *pc = (struct pbuf_custom*)p;
+#pragma GCC diagnostic pop
         LWIP_ASSERT("pc->custom_free_function != NULL", pc->custom_free_function != NULL);
         pc->custom_free_function(p);
       } else
@@ -986,7 +989,7 @@ pbuf_take(struct pbuf *buf, const void *dataptr, u16_t len)
       buf_copy_len = p->len;
     }
     /* copy the necessary parts of the buffer */
-    MEMCPY(p->payload, &((char*)dataptr)[copied_total], buf_copy_len);
+    MEMCPY(p->payload, &((const char*)dataptr)[copied_total], buf_copy_len);
     total_copy_len -= buf_copy_len;
     copied_total += buf_copy_len;
   }
@@ -1116,7 +1119,7 @@ pbuf_memcmp(struct pbuf* p, u16_t offset, const void* s2, u16_t n)
     u16_t i;
     for(i = 0; i < n; i++) {
       u8_t a = pbuf_get_at(q, start + i);
-      u8_t b = ((u8_t*)s2)[i];
+      u8_t b = ((const u8_t*)s2)[i];
       if (a != b) {
         return i+1;
       }

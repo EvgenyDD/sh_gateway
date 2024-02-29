@@ -2,17 +2,21 @@
 #include "lwip/debug.h"
 #include "lwip/stats.h"
 #include "lwip/tcp.h"
-#include <stdio.h>
 #include <string.h>
+
+#undef BYTE_ORDER
+#undef LITTLE_ENDIAN
+#undef BIG_ENDIAN
+#include <stdio.h>
 
 #include "console_udp.h"
 
 u8_t recev_buf[50];
 volatile uint32_t message_count = 0;
 
+#define SOCK_CLI_TO_MS 5000
+
 u8_t data[100];
-
-
 
 static err_t tcp_echoclient_poll(void *arg, struct tcp_pcb *tpcb);
 
@@ -20,7 +24,6 @@ enum echoclient_states
 {
 	ES_NOT_CONNECTED = 0,
 	ES_CONNECTED,
-	ES_RECEIVED,
 	ES_CLOSING,
 	ES_UNDEFINED,
 };
@@ -77,7 +80,6 @@ static err_t tcp_echoclient_sent(void *arg, struct tcp_pcb *tpcb, u16_t len)
 	return ERR_OK;
 }
 
-
 static err_t tcp_echoclient_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err)
 {
 	struct echoclient *es = (struct echoclient *)arg;
@@ -85,9 +87,9 @@ static err_t tcp_echoclient_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p
 	if(p == NULL) // if we receive an empty tcp frame from server => close connection
 	{
 		es->state = ES_CLOSING; // remote host closed connection
+		_PRINTF("CLI _e\n");
 		if(es->p_tx == NULL)
 		{
-			_PRINTF("CLI _e\n");
 			tcp_echoclient_connection_close(tpcb, es);
 		}
 		else
@@ -152,19 +154,20 @@ static err_t tcp_echoclient_poll(void *arg, struct tcp_pcb *tpcb)
 	}
 }
 
-
 static err_t tcp_echoclient_connected(void *arg, struct tcp_pcb *tpcb, err_t err)
 {
-			_PRINTF("CLI connected\n");
+	_PRINTF("CLI connected\n");
 	struct echoclient *es = NULL;
 	if(err == ERR_OK)
 	{
+		_PRINTF("=>alloc\n");
 		es = (struct echoclient *)mem_malloc(sizeof(struct echoclient));
 
 		if(es != NULL)
 		{
 			es->state = ES_CONNECTED;
 			es->pcb = tpcb;
+			_PRINTF(":PCB:x%x (addr x%x)\n", tpcb, tpcb->remote_ip);
 			sprintf((char *)data, "=> %ld <=\n", (uint32_t)message_count);
 			es->p_tx = pbuf_alloc(PBUF_TRANSPORT, strlen((char *)data), PBUF_POOL);
 
@@ -194,31 +197,58 @@ static err_t tcp_echoclient_connected(void *arg, struct tcp_pcb *tpcb, err_t err
 	return err;
 }
 
-int sock_cli_init(struct tcp_pcb **inst, const uint8_t *ipaddr, int port)
+int sock_cli_init(sock_cli_t *c, const uint8_t *ipaddr, int port)
 {
-	struct ip_addr DestIPaddr;
-	*inst = tcp_new();
-	if(inst != NULL)
+	c->inst = tcp_new();
+	c->port = port;
+	c->timeout_cnt = 0;
+	if(c->inst != NULL)
 	{
-		IP4_ADDR(&DestIPaddr, ipaddr[0], ipaddr[1], ipaddr[2], ipaddr[3]);
-		tcp_connect(*inst, &DestIPaddr, port, tcp_echoclient_connected);
+		IP4_ADDR(&c->DestIPaddr, ipaddr[0], ipaddr[1], ipaddr[2], ipaddr[3]);
+		tcp_connect(c->inst, &c->DestIPaddr, c->port, tcp_echoclient_connected);
 		return 0;
 	}
 	else
 	{
-		memp_free(MEMP_TCP_PCB, *inst);
+		memp_free(MEMP_TCP_PCB, c->inst);
 		return 1;
 	}
 }
 
-void sock_cli_poll(uint32_t diff_ms)
+void sock_cli_poll(sock_cli_t *c, uint32_t diff_ms)
 {
+	bool nc = true;
+	if(c->inst != NULL)
+	{
+		if(sock_cli_get_state(c) == ES_CONNECTED)
+		{
+			nc = false;
+		}
+	}
 
+	if(nc)
+	{
+		if(c->timeout_cnt >= SOCK_CLI_TO_MS)
+		{
+			_PRINTF("TO, Reconnecting...\n");
+			c->timeout_cnt = 0;
+			tcp_echoclient_connection_close(c->inst, NULL);
+			c->inst = tcp_new();
+			if(c->inst != NULL)
+			{
+				tcp_connect(c->inst, &c->DestIPaddr, c->port, tcp_echoclient_connected);
+			}
+		}
+		else
+		{
+			c->timeout_cnt += diff_ms;
+		}
+	}
 }
 
-int sock_cli_get_state(struct tcp_pcb *inst)
+int sock_cli_get_state(sock_cli_t *c)
 {
-	struct echoclient *es = (struct echoclient *)inst->callback_arg;
+	struct echoclient *es = (struct echoclient *)c->inst->callback_arg;
 	if(es != NULL)
 	{
 		return es->state;

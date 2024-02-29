@@ -24,4 +24,27 @@ enum
 	SHMQ_MT_TD = 16, // u64 time in ms since 1 Jan 1900 00:00:00
 }
 
+enum
+{
+	SH_GW_STS_PWR = 0,
+	SH_GW_STS_TIME,
+	SH_GW_STS_ONTIME,
+	SH_GW_STS_VIN,
+	SH_GW_STS_VOUT,
+	SH_GW_STS_ILOAD,
+	SH_GW_STS_ENERGY,
+	SH_GW_STS_POWER,
+}
+
+enum
+{
+	SH_CMD_ACK = 0, // u8 counter
+	SH_CMD_RST,
+	SH_CMD_STS,
+	SH_CMD_PON,
+	SH_CMD_POFF,
+	SH_CMD_SDOR,
+	SH_CMD_SDOW,
+}
+
 #endif // SHMQ_H__

@@ -98,7 +98,7 @@ void  mem_free(void *mem);
  * LWIP_MEM_ALIGN_SIZE(4) will both yield 4 for MEM_ALIGNMENT == 4).
  */
 #ifndef LWIP_MEM_ALIGN_SIZE
-#define LWIP_MEM_ALIGN_SIZE(size) (((size) + MEM_ALIGNMENT - 1) & ~(MEM_ALIGNMENT-1))
+#define LWIP_MEM_ALIGN_SIZE(size) (((size) + MEM_ALIGNMENT - 1) & (u16_t) ~(MEM_ALIGNMENT-1))
 #endif
 
 /** Calculate safe memory size for an aligned buffer when using an unaligned

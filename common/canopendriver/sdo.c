@@ -1,6 +1,17 @@
 #include "sdo.h"
 #include "platform.h"
 
+extern CO_t *CO;
+
+// for(uint32_t nd = 0; nd < CO->HBcons->numberOfMonitoredNodes; nd++)
+// {
+//     if(CO->HBcons->monitoredNodes[nd].nodeId == nodeId)
+//     {
+//         if(CO->HBcons->monitoredNodes[nd].HBstate != CO_HBconsumer_ACTIVE) return CO_SDO_AB_DATA_DEV_STATE;
+//         break;
+//     }
+// }
+
 CO_SDO_abortCode_t read_SDO(CO_SDOclient_t *SDO_C, uint8_t nodeId,
 							uint16_t index, uint8_t subIndex,
 							uint8_t *buf, size_t bufSize, size_t *readSize,

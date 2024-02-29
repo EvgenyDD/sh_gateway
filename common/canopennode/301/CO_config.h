@@ -31,8 +31,6 @@
 extern "C" {
 #endif
 
-#include "co_config_system.h"
-
 /**
  * @defgroup CO_STACK_CONFIG Stack configuration
  * Stack configuration and enabling macros.

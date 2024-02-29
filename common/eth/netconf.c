@@ -11,7 +11,6 @@
 #include "netif/etharp.h"
 #include "stm32f4x7_eth.h"
 #include "stm32f4x7_eth_conf.h"
-#include <stdio.h>
 
 #define MAX_DHCP_TRIES 4
 #define LINK_CHECK_INTERVAL 200 // ms
@@ -400,7 +399,7 @@ void LwIP_periodic_handle(__IO uint32_t diff_ms)
 		}
 		else
 		{
-			g_eth_status &= ~(ETH_LINK_FLAG);
+			g_eth_status &= (uint32_t) ~(ETH_LINK_FLAG);
 			netif_set_link_down(&gnetif);
 		}
 	}
