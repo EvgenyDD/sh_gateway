@@ -337,9 +337,10 @@ __attribute__((noreturn)) void main(void)
 					if(sock_cli_gw_ready[i]) sock_cli_poll(&sock_slv_gw[i], diff_ms);
 				}
 
-				if(load_switcher_poll(diff_ms))
+				int sts = load_switcher_poll(diff_ms);
+				if(sts)
 				{
-					_PRINTF("FAULT! Load Switcher!\n");
+					_PRINTF("FAULT! Load Switcher! %d\n", sts);
 				}
 
 				if(aht21_data.sensor_present) aht21_poll(diff_ms);

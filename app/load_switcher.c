@@ -46,11 +46,12 @@ void load_switcher_off(void)
 
 int load_switcher_poll(uint32_t diff_ms)
 {
+	int ret_sts = 0;
 	timeout_on_ms = timeout_on_ms > diff_ms ? timeout_on_ms - diff_ms : 0;
 
 	if(timeout_on_ms == 0) // fault pin
 	{
-		if(fabsf(adc_val.i_sns) >=  CURRENT_FAULT_LONGTERM_A)
+		if(fabsf(adc_val.i_sns) >= CURRENT_FAULT_LONGTERM_A)
 		{
 			timeout_cur_longterm_ms += diff_ms;
 		}
@@ -61,18 +62,21 @@ int load_switcher_poll(uint32_t diff_ms)
 
 		if(!(GPIOE->IDR & GPIO_Pin_15))
 		{
+			ret_sts = enabled ? 1 : 0;
 			load_switcher_off();
-			return enabled ? 1 : 0;
+			return ret_sts;
 		}
 		if(fabsf(adc_val.i_sns) >= CURRENT_FAULT_INSTANT_A)
 		{
+			ret_sts = enabled ? 2 : 0;
 			load_switcher_off();
-			return enabled ? 2 : 0;
+			return ret_sts;
 		}
 		if(timeout_cur_longterm_ms >= TIMEOUT_CUR_LONGTERM_MS)
 		{
+			ret_sts = enabled ? 3 : 0;
 			load_switcher_off();
-			return enabled ? 3 : 0;
+			return ret_sts;
 		}
 	}
 	return 0;
