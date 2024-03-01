@@ -632,7 +632,7 @@ size_t CO_fifo_readR322a(CO_fifo_t *fifo, char *buf, size_t count, bool_t end) {
 
     if (fifo != NULL && count >= 20 && CO_fifo_getOccupied(fifo) == sizeof(n)) {
         CO_fifo_read(fifo, (uint8_t *)&n, sizeof(n), NULL);
-        return (size_t)sprintf(buf, "%g", (double)CO_SWAP_32(n));
+        return (size_t)sprintf(buf, "%f", (double)CO_SWAP_32(n));
     }
     else {
         return CO_fifo_readHex2a(fifo, buf, count, end);
