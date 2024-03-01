@@ -119,8 +119,6 @@ uint8_t buf[128];
 
 static struct tcp_pcb *last_gtwa_pcb = NULL;
 
-uint32_t fuck = 0, fuck2 = 0;
-
 void cb_srv_sock_rx(struct tcp_pcb *tpcb, const struct pbuf *p);
 void cb_srv_sock_rx(struct tcp_pcb *tpcb, const struct pbuf *p)
 {
@@ -345,7 +343,17 @@ __attribute__((noreturn)) void main(void)
 
 				if(aht21_data.sensor_present) aht21_poll(diff_ms);
 
-				fuck++;
+				OD_RAM.x6000_power.energy = emeter_get_energy_kwh();
+				OD_RAM.x6000_power.power = emeter_get_power_kw();
+
+				OD_RAM.x6201_tph_sensors.temp_cpu = adc_val.t_mcu;
+				OD_RAM.x6201_tph_sensors.temp_aht = aht21_data.temp;
+				OD_RAM.x6201_tph_sensors.hum_aht = aht21_data.hum;
+
+				OD_RAM.x6200_sys_pwr_sensors.u_in = adc_val.vin;
+				OD_RAM.x6200_sys_pwr_sensors.u_out = adc_val.vout;
+				OD_RAM.x6200_sys_pwr_sensors.i_load = adc_val.i_sns;
+				OD_RAM.x6200_sys_pwr_sensors.ir = adc_val.ir;
 			}
 		}
 

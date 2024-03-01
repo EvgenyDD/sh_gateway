@@ -16,7 +16,7 @@
 
         Created:      23/11/2020 13:00:00
         Created By:   
-        Modified:     28/02/2024 22:59:32
+        Modified:     01/03/2024 12:30:27
         Modified By:  
 
     Device Info:
@@ -160,6 +160,19 @@ typedef struct {
         float32_t energy;
         float32_t power;
     } x6000_power;
+    struct {
+        uint8_t highestSub_indexSupported;
+        float32_t u_in;
+        float32_t u_out;
+        float32_t i_load;
+        float32_t ir;
+    } x6200_sys_pwr_sensors;
+    struct {
+        uint8_t highestSub_indexSupported;
+        float32_t temp_cpu;
+        float32_t temp_aht;
+        float32_t hum_aht;
+    } x6201_tph_sensors;
 } OD_RAM_t;
 
 #ifndef OD_ATTR_PERSIST_COMM
@@ -210,6 +223,8 @@ extern OD_ATTR_OD OD_t *OD;
 #define OD_ENTRY_H1F56 &OD->list[26]
 #define OD_ENTRY_H1F57 &OD->list[27]
 #define OD_ENTRY_H6000 &OD->list[28]
+#define OD_ENTRY_H6200 &OD->list[29]
+#define OD_ENTRY_H6201 &OD->list[30]
 
 
 /*******************************************************************************
@@ -244,6 +259,8 @@ extern OD_ATTR_OD OD_t *OD;
 #define OD_ENTRY_H1F56_appSoftIdentification &OD->list[26]
 #define OD_ENTRY_H1F57_flashStatusIdentification &OD->list[27]
 #define OD_ENTRY_H6000_power &OD->list[28]
+#define OD_ENTRY_H6200_sys_pwr_sensors &OD->list[29]
+#define OD_ENTRY_H6201_tph_sensors &OD->list[30]
 
 
 /*******************************************************************************

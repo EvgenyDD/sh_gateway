@@ -237,8 +237,7 @@ static void eth_board_config(void)
 static void cb_eth_link(struct netif *netif)
 {
 #ifndef LWIP_DHCP
-	fuck
-		uint8_t iptab[4] = {0};
+	uint8_t iptab[4] = {0};
 	uint8_t iptxt[20];
 #endif
 

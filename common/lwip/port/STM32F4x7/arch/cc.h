@@ -90,7 +90,9 @@ typedef int sys_prot_t;
 
 extern void lwip_assert(const char *s);
 
-// #define LWIP_PLATFORM_ASSERT(x) //do { if(!(x)) while(1); } while(0)
-#define LWIP_PLATFORM_ASSERT(x) lwip_assert(x);//do { if(!(x)) while(1); } while(0)
+#define LWIP_PLATFORM_ASSERT(x) {} //do { if(!(x)) while(1); } while(0)
+
+// #define LWIP_PLATFORM_ASSERT(x) ;//do { if(!(x)) while(1); } while(0)
+// #define LWIP_PLATFORM_ASSERT(x) lwip_assert(x);//do { if(!(x)) while(1); } while(0)
 
 #endif /* __CC_H__ */
