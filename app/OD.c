@@ -116,9 +116,10 @@ OD_ATTR_RAM OD_RAM_t OD_RAM = {
         .error = 0x00000000
     },
     .x6000_power = {
-        .highestSub_indexSupported = 0x02,
+        .highestSub_indexSupported = 0x03,
         .energy = 0,
-        .power = 0
+        .power = 0,
+        .cnt = 0x00000000
     },
     .x6200_sys_pwr_sensors = {
         .highestSub_indexSupported = 0x04,
@@ -169,7 +170,7 @@ typedef struct {
     OD_obj_record_t o_1F51_programControl[2];
     OD_obj_record_t o_1F56_appSoftIdentification[2];
     OD_obj_record_t o_1F57_flashStatusIdentification[2];
-    OD_obj_record_t o_6000_power[3];
+    OD_obj_record_t o_6000_power[4];
     OD_obj_record_t o_6200_sys_pwr_sensors[5];
     OD_obj_record_t o_6201_tph_sensors[4];
 } ODObjs_t;
@@ -618,6 +619,12 @@ static CO_PROGMEM ODObjs_t ODObjs = {
             .subIndex = 2,
             .attribute = ODA_SDO_RW | ODA_MB,
             .dataLength = 4
+        },
+        {
+            .dataOrig = &OD_RAM.x6000_power.cnt,
+            .subIndex = 3,
+            .attribute = ODA_SDO_RW | ODA_MB,
+            .dataLength = 4
         }
     },
     .o_6200_sys_pwr_sensors = {
@@ -713,7 +720,7 @@ static OD_ATTR_OD OD_entry_t ODList[] = {
     {0x1F51, 0x02, ODT_REC, &ODObjs.o_1F51_programControl, NULL},
     {0x1F56, 0x02, ODT_REC, &ODObjs.o_1F56_appSoftIdentification, NULL},
     {0x1F57, 0x02, ODT_REC, &ODObjs.o_1F57_flashStatusIdentification, NULL},
-    {0x6000, 0x03, ODT_REC, &ODObjs.o_6000_power, NULL},
+    {0x6000, 0x04, ODT_REC, &ODObjs.o_6000_power, NULL},
     {0x6200, 0x05, ODT_REC, &ODObjs.o_6200_sys_pwr_sensors, NULL},
     {0x6201, 0x04, ODT_REC, &ODObjs.o_6201_tph_sensors, NULL},
     {0x0000, 0x00, 0, NULL, NULL}

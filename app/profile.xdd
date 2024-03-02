@@ -15,7 +15,7 @@
         <ProfileTechnology>CANopen</ProfileTechnology>
       </ISO15745Reference>
     </ProfileHeader>
-    <ProfileBody xmlns:q1="http://www.canopen.org/xml/1.1" xsi:type="q1:ProfileBody_Device_CANopen" formatName="CANopen" formatVersion="1.0" fileName="profile.xdd" fileCreator="" fileCreationDate="2020-11-23" fileCreationTime="13:00:00.0000000+02:00" fileModifiedBy="" fileModificationDate="2024-03-01" fileModificationTime="12:30:27.5240068+02:00" fileVersion="1" supportedLanguages="en" xmlns="">
+    <ProfileBody xmlns:q1="http://www.canopen.org/xml/1.1" xsi:type="q1:ProfileBody_Device_CANopen" formatName="CANopen" formatVersion="1.0" fileName="profile.xdd" fileCreator="" fileCreationDate="2020-11-23" fileCreationTime="13:00:00.0000000+02:00" fileModifiedBy="" fileModificationDate="2024-03-01" fileModificationTime="14:06:16.5402797+02:00" fileVersion="1" supportedLanguages="en" xmlns="">
       <q1:DeviceIdentity>
         <q1:vendorName>Home</q1:vendorName>
         <q1:vendorID></q1:vendorID>
@@ -674,6 +674,9 @@
             </q1:varDeclaration>
             <q1:varDeclaration name="power" uniqueID="UID_RECSUB_600002">
               <REAL />
+            </q1:varDeclaration>
+            <q1:varDeclaration name="cnt" uniqueID="UID_RECSUB_600003">
+              <UDINT />
             </q1:varDeclaration>
           </q1:struct>
           <q1:struct name="sys_pwr_sensors" uniqueID="UID_REC_6200">
@@ -3027,7 +3030,7 @@
           <q1:parameter uniqueID="UID_SUB_600000">
             <label lang="en">Highest sub-index supported</label>
             <USINT />
-            <q1:defaultValue value="0x02" />
+            <q1:defaultValue value="0x03" />
           </q1:parameter>
           <q1:parameter uniqueID="UID_SUB_600001" access="readWrite">
             <label lang="en">energy</label>
@@ -3037,6 +3040,11 @@
           <q1:parameter uniqueID="UID_SUB_600002" access="readWrite">
             <label lang="en">power</label>
             <REAL />
+            <q1:defaultValue value="0" />
+          </q1:parameter>
+          <q1:parameter uniqueID="UID_SUB_600003" access="readWrite">
+            <label lang="en">cnt</label>
+            <UDINT />
             <q1:defaultValue value="0" />
           </q1:parameter>
           <q1:parameter uniqueID="UID_OBJ_6200">
@@ -3109,7 +3117,7 @@
         <ProfileTechnology>CANopen</ProfileTechnology>
       </ISO15745Reference>
     </ProfileHeader>
-    <ProfileBody xmlns:q2="http://www.canopen.org/xml/1.1" xsi:type="q2:ProfileBody_CommunicationNetwork_CANopen" formatName="CANopen" formatVersion="1.0" fileName="profile.xdd" fileCreator="" fileCreationDate="2020-11-23" fileCreationTime="13:00:00.0000000+02:00" fileModificationDate="2024-03-01" fileModificationTime="12:30:27.5240068+02:00" fileVersion="1" supportedLanguages="en" xmlns="">
+    <ProfileBody xmlns:q2="http://www.canopen.org/xml/1.1" xsi:type="q2:ProfileBody_CommunicationNetwork_CANopen" formatName="CANopen" formatVersion="1.0" fileName="profile.xdd" fileCreator="" fileCreationDate="2020-11-23" fileCreationTime="13:00:00.0000000+02:00" fileModificationDate="2024-03-01" fileModificationTime="14:06:16.5402797+02:00" fileVersion="1" supportedLanguages="en" xmlns="">
       <ApplicationLayers>
         <q2:CANopenObjectList>
           <CANopenObject index="1000" name="Device type" objectType="7" PDOmapping="no" uniqueIDRef="UID_OBJ_1000" />
@@ -3559,10 +3567,11 @@
             <CANopenSubObject subIndex="00" name="Highest sub-index supported" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_1F5700" />
             <CANopenSubObject subIndex="01" name="Error" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_1F5701" />
           </CANopenObject>
-          <CANopenObject index="6000" name="power" objectType="9" uniqueIDRef="UID_OBJ_6000" subNumber="3">
+          <CANopenObject index="6000" name="power" objectType="9" uniqueIDRef="UID_OBJ_6000" subNumber="4">
             <CANopenSubObject subIndex="00" name="Highest sub-index supported" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_600000" />
             <CANopenSubObject subIndex="01" name="energy" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_600001" />
             <CANopenSubObject subIndex="02" name="power" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_600002" />
+            <CANopenSubObject subIndex="03" name="cnt" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_600003" />
           </CANopenObject>
           <CANopenObject index="6200" name="sys_pwr_sensors" objectType="9" uniqueIDRef="UID_OBJ_6200" subNumber="5">
             <CANopenSubObject subIndex="00" name="Highest sub-index supported" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_620000" />

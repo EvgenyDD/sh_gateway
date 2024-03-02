@@ -133,6 +133,10 @@ static size_t gtwa_write_response(void *object, const char *b, size_t count, uin
 	{
 		/*int sts = */ sock_srv_send(last_gtwa_pcb, b, count);
 	}
+    else
+    {
+        _PRINTF("GTWA: %s\n", b);
+    }
 	return count;
 }
 
@@ -345,6 +349,7 @@ __attribute__((noreturn)) void main(void)
 
 				OD_RAM.x6000_power.energy = emeter_get_energy_kwh();
 				OD_RAM.x6000_power.power = emeter_get_power_kw();
+				OD_RAM.x6000_power.cnt = emeter_get_cnt();
 
 				OD_RAM.x6201_tph_sensors.temp_cpu = adc_val.t_mcu;
 				OD_RAM.x6201_tph_sensors.temp_aht = aht21_data.temp;

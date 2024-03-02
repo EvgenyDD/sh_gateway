@@ -16,7 +16,7 @@
 
         Created:      23/11/2020 13:00:00
         Created By:   
-        Modified:     01/03/2024 12:30:27
+        Modified:     01/03/2024 14:06:16
         Modified By:  
 
     Device Info:
@@ -159,6 +159,7 @@ typedef struct {
         uint8_t highestSub_indexSupported;
         float32_t energy;
         float32_t power;
+        uint32_t cnt;
     } x6000_power;
     struct {
         uint8_t highestSub_indexSupported;
