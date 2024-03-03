@@ -16,7 +16,7 @@
 
         Created:      23/11/2020 13:00:00
         Created By:   
-        Modified:     01/03/2024 14:06:16
+        Modified:     03/03/2024 23:14:56
         Modified By:  
 
     Device Info:
@@ -173,7 +173,7 @@ typedef struct {
         float32_t temp_cpu;
         float32_t temp_aht;
         float32_t hum_aht;
-    } x6201_tph_sensors;
+    } x6201_th_sensors;
 } OD_RAM_t;
 
 #ifndef OD_ATTR_PERSIST_COMM
@@ -261,7 +261,7 @@ extern OD_ATTR_OD OD_t *OD;
 #define OD_ENTRY_H1F57_flashStatusIdentification &OD->list[27]
 #define OD_ENTRY_H6000_power &OD->list[28]
 #define OD_ENTRY_H6200_sys_pwr_sensors &OD->list[29]
-#define OD_ENTRY_H6201_tph_sensors &OD->list[30]
+#define OD_ENTRY_H6201_th_sensors &OD->list[30]
 
 
 /*******************************************************************************

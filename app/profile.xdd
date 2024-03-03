@@ -15,7 +15,7 @@
         <ProfileTechnology>CANopen</ProfileTechnology>
       </ISO15745Reference>
     </ProfileHeader>
-    <ProfileBody xmlns:q1="http://www.canopen.org/xml/1.1" xsi:type="q1:ProfileBody_Device_CANopen" formatName="CANopen" formatVersion="1.0" fileName="profile.xdd" fileCreator="" fileCreationDate="2020-11-23" fileCreationTime="13:00:00.0000000+02:00" fileModifiedBy="" fileModificationDate="2024-03-01" fileModificationTime="14:06:16.5402797+02:00" fileVersion="1" supportedLanguages="en" xmlns="">
+    <ProfileBody xmlns:q1="http://www.canopen.org/xml/1.1" xsi:type="q1:ProfileBody_Device_CANopen" formatName="CANopen" formatVersion="1.0" fileName="profile.xdd" fileCreator="" fileCreationDate="2020-11-23" fileCreationTime="13:00:00.0000000+02:00" fileModifiedBy="" fileModificationDate="2024-03-03" fileModificationTime="23:14:56.7290608+02:00" fileVersion="1" supportedLanguages="en" xmlns="">
       <q1:DeviceIdentity>
         <q1:vendorName>Home</q1:vendorName>
         <q1:vendorID></q1:vendorID>
@@ -696,7 +696,7 @@
               <REAL />
             </q1:varDeclaration>
           </q1:struct>
-          <q1:struct name="tph_sensors" uniqueID="UID_REC_6201">
+          <q1:struct name="th_sensors" uniqueID="UID_REC_6201">
             <q1:varDeclaration name="Highest sub-index supported" uniqueID="UID_RECSUB_620100">
               <USINT />
             </q1:varDeclaration>
@@ -3077,7 +3077,7 @@
             <q1:defaultValue value="0" />
           </q1:parameter>
           <q1:parameter uniqueID="UID_OBJ_6201">
-            <label lang="en">tph_sensors</label>
+            <label lang="en">th_sensors</label>
             <q1:dataTypeIDRef uniqueIDRef="UID_REC_6201" />
           </q1:parameter>
           <q1:parameter uniqueID="UID_SUB_620100">
@@ -3117,7 +3117,7 @@
         <ProfileTechnology>CANopen</ProfileTechnology>
       </ISO15745Reference>
     </ProfileHeader>
-    <ProfileBody xmlns:q2="http://www.canopen.org/xml/1.1" xsi:type="q2:ProfileBody_CommunicationNetwork_CANopen" formatName="CANopen" formatVersion="1.0" fileName="profile.xdd" fileCreator="" fileCreationDate="2020-11-23" fileCreationTime="13:00:00.0000000+02:00" fileModificationDate="2024-03-01" fileModificationTime="14:06:16.5402797+02:00" fileVersion="1" supportedLanguages="en" xmlns="">
+    <ProfileBody xmlns:q2="http://www.canopen.org/xml/1.1" xsi:type="q2:ProfileBody_CommunicationNetwork_CANopen" formatName="CANopen" formatVersion="1.0" fileName="profile.xdd" fileCreator="" fileCreationDate="2020-11-23" fileCreationTime="13:00:00.0000000+02:00" fileModificationDate="2024-03-03" fileModificationTime="23:14:56.7290608+02:00" fileVersion="1" supportedLanguages="en" xmlns="">
       <ApplicationLayers>
         <q2:CANopenObjectList>
           <CANopenObject index="1000" name="Device type" objectType="7" PDOmapping="no" uniqueIDRef="UID_OBJ_1000" />
@@ -3580,7 +3580,7 @@
             <CANopenSubObject subIndex="03" name="i_load" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_620003" />
             <CANopenSubObject subIndex="04" name="ir" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_620004" />
           </CANopenObject>
-          <CANopenObject index="6201" name="tph_sensors" objectType="9" uniqueIDRef="UID_OBJ_6201" subNumber="4">
+          <CANopenObject index="6201" name="th_sensors" objectType="9" uniqueIDRef="UID_OBJ_6201" subNumber="4">
             <CANopenSubObject subIndex="00" name="Highest sub-index supported" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_620100" />
             <CANopenSubObject subIndex="01" name="temp_cpu" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_620101" />
             <CANopenSubObject subIndex="02" name="temp_aht" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_620102" />

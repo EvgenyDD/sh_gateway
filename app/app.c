@@ -351,9 +351,9 @@ __attribute__((noreturn)) void main(void)
 				OD_RAM.x6000_power.power = emeter_get_power_kw();
 				OD_RAM.x6000_power.cnt = emeter_get_cnt();
 
-				OD_RAM.x6201_tph_sensors.temp_cpu = adc_val.t_mcu;
-				OD_RAM.x6201_tph_sensors.temp_aht = aht21_data.temp;
-				OD_RAM.x6201_tph_sensors.hum_aht = aht21_data.hum;
+				OD_RAM.x6201_th_sensors.temp_cpu = adc_val.t_mcu;
+				OD_RAM.x6201_th_sensors.temp_aht = aht21_data.temp;
+				OD_RAM.x6201_th_sensors.hum_aht = aht21_data.hum;
 
 				OD_RAM.x6200_sys_pwr_sensors.u_in = adc_val.vin;
 				OD_RAM.x6200_sys_pwr_sensors.u_out = adc_val.vout;
