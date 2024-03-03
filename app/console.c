@@ -235,10 +235,11 @@ static int loff_cb(const char *arg, int l)
 
 static int adc_cb(const char *arg, int l)
 {
-	_PRINTF("VIN:  %.2f\n", adc_val.vin);
-	_PRINTF("VOUT: %.2f\n", adc_val.vout);
-	_PRINTF("Is:   %.3f\n", adc_val.i_sns);
-	_PRINTF("IR:   %.0f\n", adc_val.ir);
+	_PRINTF("VIN:   %.2f\n", adc_val.vin);
+	_PRINTF("VOUT:  %.2f\n", adc_val.vout);
+	_PRINTF("Is:    %.3f\n", adc_val.i_sns);
+	_PRINTF("IR:    %.0f\n", adc_val.ir);
+	_PRINTF("t MCU: %.0f\n", adc_val.t_mcu);
 
 	return CON_CB_SILENT;
 }
