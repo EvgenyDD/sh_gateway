@@ -313,6 +313,8 @@ static size_t _ftoa(out_fct_type out, char *buffer, size_t idx, size_t maxlen, d
 	unsigned long frac = (unsigned long)tmp;
 	diff = tmp - frac;
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wfloat-equal"
 	if(diff > (double)0.5)
 	{
 		++frac;
@@ -371,6 +373,7 @@ static size_t _ftoa(out_fct_type out, char *buffer, size_t idx, size_t maxlen, d
 			buf[len++] = '.';
 		}
 	}
+#pragma GCC diagnostic pop
 
 	// do whole part, number is reversed
 	while(len < PRINTF_FTOA_BUFFER_SIZE)
