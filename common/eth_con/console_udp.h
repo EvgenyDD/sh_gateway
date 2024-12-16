@@ -33,7 +33,7 @@
 
 typedef enum
 {
-	CON_CB_OK,
+	CON_CB_OK = 0,
 	CON_CB_SILENT,
 	CON_CB_ERR_CUSTOM,
 	CON_CB_ERR_ARGS,
@@ -42,7 +42,7 @@ typedef enum
 	CON_CB_ERR_NO_SPACE,
 } console_cmd_cb_res_t;
 
-typedef int (*console_cmd_cb_t)(const char *, int);
+typedef void (*console_cmd_cb_t)(const char *, int, int *);
 
 typedef struct
 {

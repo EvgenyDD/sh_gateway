@@ -86,7 +86,7 @@ static void cb_udp_console(void *arg, struct udp_pcb *udp, struct pbuf *p, struc
 
 	const char *param = 0;
 
-	int error_code;
+	int error_code = CON_CB_SILENT;
 
 	if(strncmp((char *)data, "help", 4) == 0)
 	{
@@ -114,7 +114,8 @@ static void cb_udp_console(void *arg, struct udp_pcb *udp, struct pbuf *p, struc
 						param = 0;
 					}
 
-					if((error_code = console_cmd[i].cb(param, len_req - l)) > CON_CB_SILENT)
+					console_cmd[i].cb(param, len_req - l, &error_code);
+					if(error_code > CON_CB_SILENT)
 					{
 						_PRINTF("Error: ");
 						switch(error_code)

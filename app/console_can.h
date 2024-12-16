@@ -1,10 +1,9 @@
-static int can_emcy_cb(const char *arg, int l)
+static void can_emcy_cb(const char *arg, int l, int *ret)
 {
 	co_emcy_print_hist();
-	return CON_CB_SILENT;
 }
 
-static int can_hb_cb(const char *arg, int l)
+static void can_hb_cb(const char *arg, int l, int *ret)
 {
 	uint32_t count_online = 0, count_offline = 0;
 	for(uint32_t nd = 0; nd < CO->HBcons->numberOfMonitoredNodes; nd++)
@@ -18,10 +17,9 @@ static int can_hb_cb(const char *arg, int l)
 		if(CO->HBcons->monitoredNodes[i].HBstate != CO_HBconsumer_UNKNOWN)
 			_PRINTF("\t%d -> %d\n", CO->HBcons->monitoredNodes[i].nodeId, CO->HBcons->monitoredNodes[i].HBstate);
 	}
-	return CON_CB_SILENT;
 }
 
-static int can_fw_cb(const char *arg, int l)
+static void can_fw_cb(const char *arg, int l, int *ret)
 {
 	unsigned int id = 0;
 	int n = sscanf(arg, "%u", &id);
@@ -44,7 +42,7 @@ static int can_fw_cb(const char *arg, int l)
 				if(sts != 0)
 				{
 					_PRINTF("SDO read %d abort: x%x\n", id, sts);
-					return CON_CB_SILENT;
+					return;
 				}
 			}
 
@@ -55,7 +53,7 @@ static int can_fw_cb(const char *arg, int l)
 			if(sts != 0)
 			{
 				_PRINTF("SDO read %d abort: x%x\n", id, sts);
-				return CON_CB_SILENT;
+				return;
 			}
 
 			_PRINTF("Node %d UID: x%08x.x%08x.x%08x %s |", id, uid[0], uid[1], uid[2], str);
@@ -66,7 +64,7 @@ static int can_fw_cb(const char *arg, int l)
 			if(sts != 0)
 			{
 				_PRINTF("SDO read %d abort: x%x\n", id, sts);
-				return CON_CB_SILENT;
+				return;
 			}
 			_PRINTF(" %s |", str);
 
@@ -76,7 +74,7 @@ static int can_fw_cb(const char *arg, int l)
 			if(sts != 0)
 			{
 				_PRINTF("SDO read %d abort: x%x\n", id, sts);
-				return CON_CB_SILENT;
+				return;
 			}
 			_PRINTF(" %s |", str);
 
@@ -86,23 +84,22 @@ static int can_fw_cb(const char *arg, int l)
 			if(sts != 0)
 			{
 				_PRINTF("SDO read %d abort: x%x\n", id, sts);
-				return CON_CB_SILENT;
+				return;
 			}
 			_PRINTF(" %s\n", str);
 			if(br) break;
 		}
 	}
-	return CON_CB_SILENT;
 }
 
-static int sdo_rd_cb(const char *arg, int l)
+static void sdo_rd_cb(const char *arg, int l, int *ret)
 {
 	unsigned int id = 0, idx = 0, subidx = 0;
 	int n = sscanf(arg, "%u %x %u", &id, &idx, &subidx);
 	if(n != 3)
 	{
 		_PRINTF("Wrong format\n");
-		return CON_CB_SILENT;
+		return;
 	}
 
 	_PRINTF("Read %d node x%x:%d\n", id, idx, subidx);
@@ -116,36 +113,32 @@ static int sdo_rd_cb(const char *arg, int l)
 		_PRINTF("x%x ", data[i]);
 	}
 	_PRINTF("\n");
-
-	return CON_CB_SILENT;
 }
 
-static int sdo_wr_cb(const char *arg, int l)
+static void sdo_wr_cb(const char *arg, int l, int *ret)
 {
 	_PRINTF("not implemented\n");
-	return CON_CB_SILENT;
 }
 
-static int can_role_cb(const char *arg, int l)
+static void can_role_cb(const char *arg, int l, int *ret)
 {
 	unsigned int id = 0, new_role;
 	int n = sscanf(arg, "%u %x", &id, &new_role);
 	if(n != 2)
 	{
 		_PRINTF("Wrong format!\n");
-		return CON_CB_SILENT;
+		return;
 	}
 	CO_SDO_abortCode_t sts = write_SDO(CO->SDOclient, id, 0x1000, 0, (uint8_t *)&new_role, sizeof(uint32_t), 800);
 	if(sts != 0)
 	{
 		_PRINTF("SDO write %d abort: x%x\n", id, sts);
-		return CON_CB_SILENT;
+		return;
 	}
 	_PRINTF("New %d role x%x OK\n", id, new_role);
-	return CON_CB_SILENT;
 }
 
-static int can_save_cb(const char *arg, int l)
+static void can_save_cb(const char *arg, int l, int *ret)
 {
 	unsigned int id = 0;
 	int n = sscanf(arg, "%u", &id);
@@ -163,16 +156,15 @@ static int can_save_cb(const char *arg, int l)
 			if(sts != 0)
 			{
 				_PRINTF("SDO write %d abort: x%x\n", id, sts);
-				return CON_CB_SILENT;
+				return;
 			}
 			_PRINTF("Save ID %d OK\n", id);
 			if(br) break;
 		}
 	}
-	return CON_CB_SILENT;
 }
 
-static int can_rst_comm_cb(const char *arg, int l)
+static void can_rst_comm_cb(const char *arg, int l, int *ret)
 {
 	unsigned int id = 0;
 	int n = sscanf(arg, "%u", &id);
@@ -184,10 +176,9 @@ static int can_rst_comm_cb(const char *arg, int l)
 	else
 		_PRINTF("Resetting communication %d node\n", id);
 	CO_NMT_sendCommand(CO->NMT, CO_NMT_RESET_COMMUNICATION, id);
-	return CON_CB_SILENT;
 }
 
-static int can_rst_cb(const char *arg, int l)
+static void can_rst_cb(const char *arg, int l, int *ret)
 {
 	unsigned int id = 0;
 	int n = sscanf(arg, "%u", &id);
@@ -197,10 +188,9 @@ static int can_rst_cb(const char *arg, int l)
 	else
 		_PRINTF("Resetting %d node\n", id);
 	CO_NMT_sendCommand(CO->NMT, CO_NMT_RESET_NODE, id);
-	return CON_CB_SILENT;
 }
 
-static int can_rst_freeze_cb(const char *arg, int l)
+static void can_rst_freeze_cb(const char *arg, int l, int *ret)
 {
 	unsigned int id = 0;
 	int n = sscanf(arg, "%u", &id);
@@ -231,18 +221,16 @@ static int can_rst_freeze_cb(const char *arg, int l)
 			}
 		}
 	}
-
-	return CON_CB_SILENT;
 }
 
-static int can_id_cb(const char *arg, int l)
+static void can_id_cb(const char *arg, int l, int *ret)
 {
 	unsigned int id = 0, new_id = 0;
 	int n = sscanf(arg, "%u %u", &id, &new_id);
 	if(n != 2)
 	{
 		_PRINTF("Wrong format\n");
-		return CON_CB_SILENT;
+		return;
 	}
 
 	CO_LSS_address_t addr;
@@ -255,7 +243,7 @@ static int can_id_cb(const char *arg, int l)
 		if(sts != 0 || rd != 4)
 		{
 			_PRINTF("SDO read %d abort: x%x\n", id, sts);
-			return CON_CB_SILENT;
+			return;
 		}
 	}
 
@@ -263,14 +251,14 @@ static int can_id_cb(const char *arg, int l)
 	if(sts < 0)
 	{
 		_PRINTF("Error, select: %d\n", sts);
-		return 5;
+		return;
 	}
 
 	sts = lss_helper_cfg_node_id(new_id);
 	if(sts < 0)
 	{
 		_PRINTF("Error, cfg. node id: %d\n", sts);
-		return 6;
+		return;
 	}
 
 #if 0
@@ -284,24 +272,22 @@ static int can_id_cb(const char *arg, int l)
 
 	lss_helper_deselect();
 	_PRINTF("OK\n");
-
-	return CON_CB_SILENT;
 }
 
-static int can_baud_cb(const char *arg, int l)
+static void can_baud_cb(const char *arg, int l, int *ret)
 {
 	unsigned int baud = 0;
 	int n = sscanf(arg, "%u", &baud);
 	if(n != 1 || baud <= 0)
 	{
 		_PRINTF("Wrong format, current baud: %d\n", pending_can_baud * 1000);
-		return CON_CB_SILENT;
+		return;
 	}
 
 	if(can_drv_check_set_bitrate(CO->CANmodule->CANptr, (int32_t)(baud * 1000), false) != (int32_t)(baud * 1000))
 	{
 		_PRINTF("Error! Baud %d not supported\n");
-		return CON_CB_SILENT;
+		return;
 	}
 
 	CO_SDO_abortCode_t sts;
@@ -319,14 +305,14 @@ static int can_baud_cb(const char *arg, int l)
 				if(sts != 0 || rd != 4)
 				{
 					_PRINTF("SDO read %d abort: x%x\n", CO->HBcons->monitoredNodes[i].nodeId, sts);
-					return CON_CB_SILENT;
+					return;
 				}
 			}
 			stsi = lss_helper_select(&addr);
 			if(stsi < 0)
 			{
 				_PRINTF("Error select node %d: (%d)\n", CO->HBcons->monitoredNodes[i].nodeId, stsi);
-				return CON_CB_SILENT;
+				return;
 			}
 
 			stsi = lss_helper_cfg_bit_timing(baud); // kbit/s
@@ -334,7 +320,7 @@ static int can_baud_cb(const char *arg, int l)
 			{
 				lss_helper_deselect();
 				_PRINTF("Error cfg. bit timing node %d: (%d)\n", CO->HBcons->monitoredNodes[i].nodeId, stsi);
-				return CON_CB_SILENT;
+				return;
 			}
 			lss_helper_deselect();
 			_PRINTF("activate %d ok\n", CO->HBcons->monitoredNodes[i].nodeId);
@@ -350,7 +336,7 @@ static int can_baud_cb(const char *arg, int l)
 	{
 		lss_helper_deselect();
 		_PRINTF("Error global select: (%d)\n", stsi);
-		return CON_CB_SILENT;
+		return;
 	}
 
 	stsi = lss_helper_activate_bit_timing(1000);
@@ -358,13 +344,12 @@ static int can_baud_cb(const char *arg, int l)
 	{
 		lss_helper_deselect();
 		_PRINTF("Error activate bit timing: (%d)\n", stsi);
-		return CON_CB_SILENT;
+		return;
 	}
 
 	lss_helper_deselect();
 
 	_PRINTF("OK\n");
-	return CON_CB_SILENT;
 }
 
 #define RSDO(ID, IDX, SUBIDX, VAL)                                                          \
@@ -373,7 +358,8 @@ static int can_baud_cb(const char *arg, int l)
 	if(sts != 0 || rd != sizeof(VAL))                                                       \
 	{                                                                                       \
 		_PRINTF("SDO read %d abort: x%x\n", id, sts);                                       \
-		return CON_CB_SILENT;                                                               \
+		*ret = CON_CB_SILENT;                                                               \
+		return;                                                                             \
 	}
 
 #define RSDO_T(ID, IDX, SUBIDX, VAL, TYPE)                                                   \
@@ -382,17 +368,18 @@ static int can_baud_cb(const char *arg, int l)
 	if(sts != 0 || rd != sizeof(TYPE))                                                       \
 	{                                                                                        \
 		_PRINTF("SDO read %d abort: x%x (x%x:x%x)\n", id, sts, IDX, SUBIDX);                 \
-		return CON_CB_SILENT;                                                                \
+		*ret = CON_CB_SILENT;                                                                \
+		return;                                                                              \
 	}
 
-static int can_meteo_cb(const char *arg, int l)
+static void can_meteo_cb(const char *arg, int l, int *ret)
 {
 	unsigned int id = 0;
 	int n = sscanf(arg, "%u", &id);
 	if(n != 1)
 	{
 		_PRINTF("Wrong format!\n");
-		return CON_CB_SILENT;
+		return;
 	}
 
 	CO_SDO_abortCode_t sts;
@@ -496,6 +483,4 @@ static int can_meteo_cb(const char *arg, int l)
 	_PRINTF("%d Solar: ", v_i16);
 	RSDO(id, 0x6102, 0xe, v_i16);
 	_PRINTF("%d\n", v_i16);
-
-	return CON_CB_SILENT;
 }

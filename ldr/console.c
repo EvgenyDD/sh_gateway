@@ -7,7 +7,7 @@
 #include <ctype.h>
 #include <string.h>
 
-static int fw_cb(const char *arg, int l)
+static void fw_cb(const char *arg, int l, int *ret)
 {
 	_PRINTF("Reset from: %s\n", paltform_reset_cause_get());
 	fw_header_check_all();
@@ -25,10 +25,9 @@ static int fw_cb(const char *arg, int l)
 	_PRINTF("UID   : x%08x.x%08x.x%08x\n", g_uid[0], g_uid[1], g_uid[2]);
 	_PRINTF("IP    : %d.%d.%d.%d\n", LwIP_cfg_ip()[0], LwIP_cfg_ip()[1], LwIP_cfg_ip()[2], LwIP_cfg_ip()[3]);
 	_PRINTF("MAC   : x%x:x%x:x%x:x%x:x%x:x%x\n", ethernetif_cfg_mac()[0], ethernetif_cfg_mac()[1], ethernetif_cfg_mac()[2], ethernetif_cfg_mac()[3], ethernetif_cfg_mac()[4], ethernetif_cfg_mac()[5]);
-	return CON_CB_SILENT;
 }
 
-static int save_cb(const char *arg, int l)
+static void save_cb(const char *arg, int l, int *ret)
 {
 	int sts = config_write_storage();
 	if(sts != 0) _PRINTF("SAVE ERROR: %d\n", sts);
@@ -37,20 +36,17 @@ static int save_cb(const char *arg, int l)
 		sts = config_validate();
 		_PRINTF("SAVE config status: %d\n", sts);
 	}
-	return CON_CB_SILENT;
 }
 
-static int cfg_state_cb(const char *arg, int l)
+static void cfg_state_cb(const char *arg, int l, int *ret)
 {
 	int sts = config_validate();
 	_PRINTF("Config status: %d\n", sts);
-	return CON_CB_SILENT;
 }
 
-static int reset_cb(const char *arg, int l)
+static void reset_cb(const char *arg, int l, int *ret)
 {
 	platform_reset();
-	return CON_CB_SILENT;
 }
 
 const console_cmd_t console_cmd[] = {
