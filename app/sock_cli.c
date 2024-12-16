@@ -167,7 +167,7 @@ static err_t tcp_echoclient_connected(void *arg, struct tcp_pcb *tpcb, err_t err
 		{
 			es->state = ES_CONNECTED;
 			es->pcb = tpcb;
-			_PRINTF(":PCB:x%x (addr x%x)\n", tpcb, tpcb->remote_ip);
+			// _PRINTF(":PCB:x%lx (addr x%lx)\n", ((uint32_t)tpcb), ((uint32_t)(tpcb->remote_ip)));
 			sprintf((char *)data, "=> %ld <=\n", (uint32_t)message_count);
 			es->p_tx = pbuf_alloc(PBUF_TRANSPORT, strlen((char *)data), PBUF_POOL);
 

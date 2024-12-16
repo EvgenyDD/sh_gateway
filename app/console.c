@@ -37,7 +37,7 @@ static void fw_cb(const char *arg, int l, int *ret)
 	_PRINTF("Reset from: %s\n", paltform_reset_cause_get());
 	fw_header_check_all();
 	const char *p_build_ts = fw_fields_find_by_key_helper(&g_fw_info[FW_TYPE], "build_ts");
-	_PRINTF("%s %s : %d.%d.%d : %s\n",
+	_PRINTF("%s %s : %ld.%ld.%ld : %s\n",
 			g_fw_info[FW_APP].field_product_ptr,
 			g_fw_info[FW_APP].field_product_name_ptr,
 			g_fw_info[FW_APP].ver_major,
@@ -47,7 +47,7 @@ static void fw_cb(const char *arg, int l, int *ret)
 	_PRINTF("PRELDR: %d\n", g_fw_info[FW_PRELDR].locked);
 	_PRINTF("LDR   : %d\n", g_fw_info[FW_LDR].locked);
 	_PRINTF("APP   : %d\n", g_fw_info[FW_APP].locked);
-	_PRINTF("UID   : x%08x.x%08x.x%08x\n", g_uid[0], g_uid[1], g_uid[2]);
+	_PRINTF("UID   : x%08lx.x%08lx.x%08lx\n", g_uid[0], g_uid[1], g_uid[2]);
 	_PRINTF("IP    : %d.%d.%d.%d\n", LwIP_cfg_ip()[0], LwIP_cfg_ip()[1], LwIP_cfg_ip()[2], LwIP_cfg_ip()[3]);
 	_PRINTF("MAC   : x%x:x%x:x%x:x%x:x%x:x%x\n", ethernetif_cfg_mac()[0], ethernetif_cfg_mac()[1], ethernetif_cfg_mac()[2], ethernetif_cfg_mac()[3], ethernetif_cfg_mac()[4], ethernetif_cfg_mac()[5]);
 }
@@ -179,7 +179,7 @@ static void read_cb(const char *arg, int l, int *ret)
 
 	for(uint32_t i = 0; i < sizeof(g_device_config_count); i++)
 	{
-		_PRINTF("%s (%d) @ x%x [", g_device_config[i].key, g_device_config[i].size, g_device_config[i].data_abs_address);
+		_PRINTF("%s (%d) @ x%lx [", g_device_config[i].key, g_device_config[i].size, g_device_config[i].data_abs_address);
 		for(uint32_t j = 0; j < g_device_config[i].size; j++)
 		{
 			_PRINTF("x%02x ", ((uint8_t *)g_device_config[i].data)[j]);
@@ -255,7 +255,7 @@ static void energy_cb(const char *arg, int l, int *ret)
 
 static void sli_cb(const char *arg, int l, int *ret)
 {
-	_PRINTF("lwip_assert_counter %d\n", lwip_assert_counter);
+	_PRINTF("lwip_assert_counter %ld\n", lwip_assert_counter);
 	// _PRINTF("state1: %d\n", sock_cli_get_state(cc_sock));
 	// _PRINTF("state2: x%x\n", cc_sock->state);
 

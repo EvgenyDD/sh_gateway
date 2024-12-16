@@ -53,7 +53,7 @@ typedef struct
 extern const console_cmd_t console_cmd[];
 extern const uint32_t console_cmd_sz;
 
-void _PRINTF(const char *fmt, ...);
+void _PRINTF(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
 void _PRINT_PREFIX(void);
 int console_udp_init(void);
 

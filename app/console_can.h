@@ -11,7 +11,7 @@ static void can_hb_cb(const char *arg, int l, int *ret)
 		if(CO->HBcons->monitoredNodes[nd].HBstate == CO_HBconsumer_ACTIVE) count_online++;
 		if(CO->HBcons->monitoredNodes[nd].HBstate == CO_HBconsumer_TIMEOUT) count_offline++;
 	}
-	_PRINTF("Nodes: %d online | %d offline\n", count_online, count_offline);
+	_PRINTF("Nodes: %ld online | %ld offline\n", count_online, count_offline);
 	for(uint32_t i = 0; i < CO->HBcons->numberOfMonitoredNodes; i++)
 	{
 		if(CO->HBcons->monitoredNodes[i].HBstate != CO_HBconsumer_UNKNOWN)
@@ -56,7 +56,7 @@ static void can_fw_cb(const char *arg, int l, int *ret)
 				return;
 			}
 
-			_PRINTF("Node %d UID: x%08x.x%08x.x%08x %s |", id, uid[0], uid[1], uid[2], str);
+			_PRINTF("Node %d UID: x%08lx.x%08lx.x%08lx %s |", id, uid[0], uid[1], uid[2], str);
 
 			rd = sizeof(str);
 			memset(str, 0, sizeof(str));
@@ -286,7 +286,7 @@ static void can_baud_cb(const char *arg, int l, int *ret)
 
 	if(can_drv_check_set_bitrate(CO->CANmodule->CANptr, (int32_t)(baud * 1000), false) != (int32_t)(baud * 1000))
 	{
-		_PRINTF("Error! Baud %d not supported\n");
+		_PRINTF("Error! Baud %d not supported\n", baud * 1000);
 		return;
 	}
 
@@ -412,48 +412,48 @@ static void can_meteo_cb(const char *arg, int l, int *ret)
 	RSDO(id, 0x6100, 6, v_u8);
 	_PRINTF("%d | ", v_u8);
 	RSDO(id, 0x6100, 0xC, v_i32);
-	_PRINTF("h %d | ", v_i32);
+	_PRINTF("h %ld | ", v_i32);
 	RSDO(id, 0x6100, 0xD, v_i32);
-	_PRINTF("hMSL %d | ", v_i32);
+	_PRINTF("hMSL %ld | ", v_i32);
 	RSDO(id, 0x6100, 0x12, v_u8);
 	_PRINTF("numSV %d\n", v_u8);
 
 	RSDO(id, 0x6100, 7, v_i32);
-	_PRINTF("nano %d | ", v_i32);
+	_PRINTF("nano %ld | ", v_i32);
 	RSDO(id, 0x6100, 8, v_u32);
-	_PRINTF("iTOW %d | ", v_u32);
+	_PRINTF("iTOW %ld | ", v_u32);
 	RSDO(id, 0x6100, 9, v_u32);
-	_PRINTF("tAcc %d | ", v_u32);
+	_PRINTF("tAcc %ld | ", v_u32);
 	RSDO(id, 0x6100, 0xA, v_i32);
-	_PRINTF("lon %d | ", v_i32);
+	_PRINTF("lon %ld | ", v_i32);
 	RSDO(id, 0x6100, 0xB, v_i32);
-	_PRINTF("lat %d | ", v_i32);
+	_PRINTF("lat %ld | ", v_i32);
 	RSDO(id, 0x6100, 0xE, v_u32);
-	_PRINTF("hAcc %d | ", v_u32);
+	_PRINTF("hAcc %ld | ", v_u32);
 	RSDO(id, 0x6100, 0xF, v_u32);
-	_PRINTF("vAcc %d | ", v_u32);
+	_PRINTF("vAcc %ld | ", v_u32);
 	RSDO(id, 0x6100, 0x10, v_u32);
-	_PRINTF("sAcc %d\n", v_u32);
+	_PRINTF("sAcc %ld\n", v_u32);
 	RSDO(id, 0x6100, 0x11, v_u32);
-	_PRINTF("headAcc %d | ", v_u32);
+	_PRINTF("headAcc %ld | ", v_u32);
 	RSDO(id, 0x6100, 0x13, v_i32);
-	_PRINTF("headMot %d | ", v_i32);
+	_PRINTF("headMot %ld | ", v_i32);
 	RSDO(id, 0x6100, 0x14, v_i32);
-	_PRINTF("velN %d | ", v_i32);
+	_PRINTF("velN %ld | ", v_i32);
 	RSDO(id, 0x6100, 0x15, v_i32);
-	_PRINTF("velE %d | ", v_i32);
+	_PRINTF("velE %ld | ", v_i32);
 	RSDO(id, 0x6100, 0x16, v_i32);
-	_PRINTF("velD %d | ", v_i32);
+	_PRINTF("velD %ld | ", v_i32);
 	RSDO(id, 0x6100, 0x17, v_i32);
-	_PRINTF("gSpd %d | ", v_i32);
+	_PRINTF("gSpd %ld | ", v_i32);
 	RSDO(id, 0x6100, 0x18, v_u16);
 	_PRINTF("pDOP %d | ", v_u16);
 	RSDO(id, 0x6100, 0x19, v_u32);
-	_PRINTF("flags x%x\n", v_u32);
+	_PRINTF("flags x%lx\n", v_u32);
 
 	_PRINTF("Baro: ");
 	RSDO(id, 0x6101, 1, v_u32);
-	_PRINTF("%d | Temp: ", v_u32);
+	_PRINTF("%ld | Temp: ", v_u32);
 	RSDO(id, 0x6101, 2, v_i16);
 	_PRINTF("%d\n", v_i16);
 
@@ -465,7 +465,7 @@ static void can_meteo_cb(const char *arg, int l, int *ret)
 
 	_PRINTF("Meteo: WindA ");
 	RSDO(id, 0x6102, 1, v_u32);
-	_PRINTF("%d | Head: ", v_u32);
+	_PRINTF("%ld | Head: ", v_u32);
 	RSDO(id, 0x6102, 0xa, v_u16);
 	_PRINTF("%d\n", v_u16);
 	uint32_t head[8];
@@ -473,12 +473,12 @@ static void can_meteo_cb(const char *arg, int l, int *ret)
 	{
 		RSDO(id, 0x6102, i, head[i - 0x2]);
 	}
-	_PRINTF("E %d NE %d N %d NW %d W %d SW %d S %d SE %d\n",
+	_PRINTF("E %ld NE %ld N %ld NW %ld W %ld SW %ld S %ld SE %ld\n",
 			head[0], head[1], head[2], head[3], head[4], head[5], head[6], head[7]);
 
 	_PRINTF("RainA: ");
 	RSDO(id, 0x6102, 0xb, v_u32);
-	_PRINTF("%d Temp: ", v_u32);
+	_PRINTF("%ld Temp: ", v_u32);
 	RSDO(id, 0x6102, 0xc, v_i16);
 	_PRINTF("%d Solar: ", v_i16);
 	RSDO(id, 0x6102, 0xe, v_i16);
