@@ -73,7 +73,7 @@ int cb_nd_wr(uint32_t addr, const uint8_t *data, uint32_t size)
 		memset(str, 0, sizeof(str));
 		if((sts = read_SDO(CO->SDOclient, g_sdo_flasher_id, 0x1008, 0, str, sizeof(str), &rd, 800)) != 0) return SDO_FL_ERR_RD_IDENT;
 		const char *same_fw_str = g_nd_fw_cb->name;
-		if(strcmp(str, same_fw_str) == 0) // need reset
+		if(strcmp((const char *)str, same_fw_str) == 0) // need reset
 		{
 			cmd = CO_SDO_FLASHER_W_START_BOOTLOADER;
 			write_SDO(CO->SDOclient, g_sdo_flasher_id, 0x1F51, 1, (uint8_t *)&cmd, sizeof(cmd), 100);
@@ -83,7 +83,7 @@ int cb_nd_wr(uint32_t addr, const uint8_t *data, uint32_t size)
 			rd = sizeof(str);
 			memset(str, 0, sizeof(str));
 			if((sts = read_SDO(CO->SDOclient, g_sdo_flasher_id, 0x1008, 0, str, sizeof(str), &rd, 800)) != 0) return SDO_FL_ERR_RD_IDENT2;
-			if(strcmp(str, same_fw_str) == 0) return SDO_FL_ERR_ID_SAME_SECOND_TIME;
+			if(strcmp((const char *)str, same_fw_str) == 0) return SDO_FL_ERR_ID_SAME_SECOND_TIME;
 		}
 
 		cmd = CO_SDO_FLASHER_W_STOP;

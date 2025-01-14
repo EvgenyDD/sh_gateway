@@ -12,7 +12,7 @@ static void fw_cb(const char *arg, int l, int *ret)
 	_PRINTF("Reset from: %s\n", paltform_reset_cause_get());
 	fw_header_check_all();
 	const char *p_build_ts = fw_fields_find_by_key_helper(&g_fw_info[FW_TYPE], "build_ts");
-	_PRINTF("%s %s : %d.%d.%d : %s\n",
+	_PRINTF("%s %s : %ld.%ld.%ld : %s\n",
 			g_fw_info[FW_LDR].field_product_ptr,
 			g_fw_info[FW_LDR].field_product_name_ptr,
 			g_fw_info[FW_LDR].ver_major,
@@ -22,7 +22,7 @@ static void fw_cb(const char *arg, int l, int *ret)
 	_PRINTF("PRELDR: %d\n", g_fw_info[FW_PRELDR].locked);
 	_PRINTF("LDR   : %d\n", g_fw_info[FW_LDR].locked);
 	_PRINTF("APP   : %d\n", g_fw_info[FW_APP].locked);
-	_PRINTF("UID   : x%08x.x%08x.x%08x\n", g_uid[0], g_uid[1], g_uid[2]);
+	_PRINTF("UID   : x%08lx.x%08lx.x%08lx\n", g_uid[0], g_uid[1], g_uid[2]);
 	_PRINTF("IP    : %d.%d.%d.%d\n", LwIP_cfg_ip()[0], LwIP_cfg_ip()[1], LwIP_cfg_ip()[2], LwIP_cfg_ip()[3]);
 	_PRINTF("MAC   : x%x:x%x:x%x:x%x:x%x:x%x\n", ethernetif_cfg_mac()[0], ethernetif_cfg_mac()[1], ethernetif_cfg_mac()[2], ethernetif_cfg_mac()[3], ethernetif_cfg_mac()[4], ethernetif_cfg_mac()[5]);
 }

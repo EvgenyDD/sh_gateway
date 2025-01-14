@@ -84,8 +84,7 @@ void delay_ms(volatile uint32_t delay_ms)
 	for(;;)
 	{
 		start += (uint32_t)prof_mark(&mark_prev);
-		if(start >= time_limit)
-			return;
+		if(start >= time_limit) return;
 	}
 }
 
@@ -99,8 +98,7 @@ void delay_ms_w_can_poll(volatile uint32_t delay_ms)
 	{
 		start += (uint32_t)prof_mark(&mark_prev);
 		CO_CANinterrupt(CO->CANmodule);
-		if(start >= time_limit)
-			return;
+		if(start >= time_limit) return;
 	}
 }
 
@@ -131,12 +129,12 @@ static size_t gtwa_write_response(void *object, const char *b, size_t count, uin
 {
 	if(last_gtwa_pcb)
 	{
-		/*int sts = */ sock_srv_send(last_gtwa_pcb, b, count);
+		/*int sts = */ sock_srv_send(last_gtwa_pcb, (const uint8_t *)b, count);
 	}
-    else
-    {
-        _PRINTF("GTWA: %s\n", b);
-    }
+	else
+	{
+		_PRINTF("GTWA: %s\n", b);
+	}
 	return count;
 }
 

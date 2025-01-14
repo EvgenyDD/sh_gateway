@@ -107,7 +107,7 @@ static void cb_udp_console(void *arg, struct udp_pcb *udp, struct pbuf *p, struc
 				{
 					if((len_req - l) > 0)
 					{
-						param = data + l;
+						param = (const char *)data + l;
 					}
 					else
 					{
