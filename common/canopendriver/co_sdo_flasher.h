@@ -32,13 +32,12 @@ enum
 typedef struct
 {
 	const char *name;
+	uint8_t fw_type;
 	int (*p_rd)(uint32_t addr, uint8_t *data, uint32_t size_buffer, uint32_t *size_read);
 	int (*p_wr)(uint32_t addr, const uint8_t *data, uint32_t size);
 } nd_fw_cb_t;
 
-int cb_nd_rd_preldr(uint32_t addr, uint8_t *data, uint32_t size_buffer, uint32_t *size_read);
-int cb_nd_rd_ldr(uint32_t addr, uint8_t *data, uint32_t size_buffer, uint32_t *size_read);
-int cb_nd_rd_app(uint32_t addr, uint8_t *data, uint32_t size_buffer, uint32_t *size_read);
+int cb_nd_rd(uint32_t addr, uint8_t *data, uint32_t size_buffer, uint32_t *size_read);
 
 int cb_nd_wr_preldr(uint32_t addr, const uint8_t *data, uint32_t size);
 int cb_nd_wr(uint32_t addr, const uint8_t *data, uint32_t size);

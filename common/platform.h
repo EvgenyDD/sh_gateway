@@ -12,7 +12,7 @@
 #define PAGE_SIZE (2 * 1024)
 
 #define FLASH_LEN (0x00040000U) // 256kB TODO: BUG HERE !!!!!!!!
-// #define FLASH_LEN (0x00100000U) // 1024kB 
+// #define FLASH_LEN (0x00100000U) // 1024kB
 #define FLASH_START FLASH_BASE
 #define FLASH_ORIGIN FLASH_BASE
 #define FLASH_FINISH (FLASH_BASE + FLASH_LEN)
@@ -46,7 +46,8 @@ void delay_ms_w_can_poll(volatile uint32_t delay_ms);
 void platform_watchdog_init(void);
 static inline void platform_watchdog_reset(void) { IWDG_ReloadCounter(); }
 
-const char *paltform_reset_cause_get(void);
+uint32_t platform_handle_reset_cause(void);
+const char *platform_reset_cause_get(uint32_t v);
 
 extern int __preldr_start, __preldr_end;
 extern int __ldr_start, __ldr_end;

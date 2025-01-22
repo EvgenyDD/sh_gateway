@@ -20,3 +20,23 @@ void ret_mem_set_load_src(load_src_t src)
 {
 	RTC->BKP0R = src;
 }
+
+void ret_mem_set_rst_cause_ldr(uint32_t src)
+{
+	RTC->BKP2R = src;
+}
+
+void ret_mem_set_rst_cause_app(uint32_t src)
+{
+	RTC->BKP3R = src;
+}
+
+uint32_t ret_mem_get_rst_cause_ldr(void)
+{
+	return RTC->BKP2R;
+}
+
+uint32_t ret_mem_get_rst_cause_app(void)
+{
+	return RTC->BKP3R;
+}

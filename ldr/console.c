@@ -4,12 +4,13 @@
 #include "ethernetif.h"
 #include "fw_header.h"
 #include "platform.h"
+#include "ret_mem.h"
 #include <ctype.h>
 #include <string.h>
 
 static void fw_cb(const char *arg, int l, int *ret)
 {
-	_PRINTF("Reset from: %s\n", paltform_reset_cause_get());
+	_PRINTF("Reset ldr: %s | app: %s\n", platform_reset_cause_get(ret_mem_get_rst_cause_ldr()), platform_reset_cause_get(ret_mem_get_rst_cause_app()));
 	fw_header_check_all();
 	const char *p_build_ts = fw_fields_find_by_key_helper(&g_fw_info[FW_TYPE], "build_ts");
 	_PRINTF("%s %s : %ld.%ld.%ld : %s\n",

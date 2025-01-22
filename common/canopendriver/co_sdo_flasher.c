@@ -1,6 +1,7 @@
 #include "co_sdo_flasher.h"
 #include "CANopen.h"
 #include "crc.h"
+#include "fw_header.h"
 #include "platform.h"
 #include "sdo.h"
 
@@ -22,6 +23,15 @@ enum
 	SDO_FL_ERR_WR_PAYLOAD,
 };
 
+struct __attribute__((packed))
+{
+	uint32_t block_number;
+	uint32_t address;
+	uint32_t size;
+	uint8_t data[BLOCK_SZ];
+	uint8_t data_crc[4];
+} block;
+
 static int read_sts_flash(const char *op)
 {
 	uint32_t err_code, flash_sts = 0;
@@ -39,19 +49,55 @@ static int read_sts_flash(const char *op)
 	return SDO_FL_ERR_STS_FL;
 }
 
-int cb_nd_rd_preldr(uint32_t addr, uint8_t *data, uint32_t size_buffer, uint32_t *size_read) { return 1; }
-int cb_nd_wr_preldr(uint32_t addr, const uint8_t *data, uint32_t size) { return 1; }
-int cb_nd_rd_ldr(uint32_t addr, uint8_t *data, uint32_t size_buffer, uint32_t *size_read) { return 1; }
-int cb_nd_rd_app(uint32_t addr, uint8_t *data, uint32_t size_buffer, uint32_t *size_read) { return 1; }
-
-struct __attribute__((packed))
+static int dev_read(uint8_t fw_sel, uint32_t addr, uint8_t *data)
 {
-	uint32_t block_number;
-	uint32_t address;
-	uint32_t size;
-	uint8_t data[BLOCK_SZ];
-	uint8_t data_crc[4];
-} block;
+	block.block_number = fw_sel;
+	block.address = addr;
+	block.size = 0;
+
+	uint32_t block_crc = crc32((uint8_t *)&block, 12U + block.size);
+	memcpy(&block.data[block.size], (uint8_t *)&block_crc, sizeof(block_crc));
+
+	int sts = write_SDO(CO->SDOclient, g_sdo_flasher_id, 0x1F50, 1, (uint8_t *)&block, 16 + block.size, 3000);
+	if(sts) return -1;
+
+	uint8_t pkt[1024];
+	size_t rd = sizeof(pkt);
+	sts = read_SDO(CO->SDOclient, g_sdo_flasher_id, 0x1F50, 1, pkt, sizeof(pkt), &rd, 100);
+	if(!sts)
+	{
+		if(rd < 5) return -2;
+		uint8_t sel = pkt[0];
+		uint32_t off;
+		memcpy(&off, &pkt[1], 4);
+		if(sel != fw_sel || off != addr) return -3;
+		memcpy(data, &pkt[5], rd - 5);
+		return rd - 5;
+	}
+	return -4;
+}
+
+int cb_nd_wr_preldr(uint32_t addr, const uint8_t *data, uint32_t size) { return 1; }
+
+int cb_nd_rd(uint32_t addr, uint8_t *data, uint32_t size_buffer, uint32_t *size_read)
+{
+	if(size_buffer > BLOCK_SZ) return SDO_FL_ERR_SIZE_BIGGER_THAN_BUFFER;
+
+	uint32_t cmd;
+	int sts;
+
+	if(addr == 0)
+	{
+		cmd = CO_SDO_FLASHER_W_STOP;
+		if((sts = write_SDO(CO->SDOclient, g_sdo_flasher_id, 0x1F51, 1, (uint8_t *)&cmd, sizeof(cmd), 3000)) != 0) return SDO_FL_ERR_WR_CMD;
+		if((sts = read_sts_flash("CO_SDO_FLASHER_W_STOP")) != 0) return sts;
+	}
+
+	sts = dev_read(g_nd_fw_cb->fw_type, addr, data);
+	if(sts < 0) return -sts;
+	*size_read = ((uint32_t)sts > size_buffer) ? size_buffer : (uint32_t)sts;
+	return 0;
+}
 
 int cb_nd_wr(uint32_t addr, const uint8_t *data, uint32_t size)
 {

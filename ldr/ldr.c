@@ -74,6 +74,7 @@ __attribute__((noreturn)) void main(void)
 	fw_header_check_all();
 
 	ret_mem_init();
+	ret_mem_set_rst_cause_ldr(platform_handle_reset_cause());
 	ret_mem_set_load_src(LOAD_SRC_BOOTLOADER); // let preboot know it was booted from bootloader
 
 	adc_init();

@@ -48,9 +48,9 @@ static struct
 			 {"sh_gw_ldr", cb_gw_rd_ldr},
 			 {"sh_gw_app", cb_gw_rd_app}};
 
-nd_fw_cb_t nd[] = {{"sh_nd_preldr", cb_nd_rd_preldr, cb_nd_wr_preldr},
-				   {"sh_nd_ldr", cb_nd_rd_ldr, cb_nd_wr},
-				   {"sh_nd_app", cb_nd_rd_app, cb_nd_wr}};
+nd_fw_cb_t nd[] = {{"sh_nd_preldr", FW_PRELDR, cb_nd_rd, cb_nd_wr_preldr},
+				   {"sh_nd_ldr", FW_LDR, cb_nd_rd, cb_nd_wr},
+				   {"sh_nd_app", FW_APP, cb_nd_rd, cb_nd_wr}};
 
 static uint8_t get_can_id(const char *s)
 {

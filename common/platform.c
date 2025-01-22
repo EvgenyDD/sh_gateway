@@ -153,21 +153,41 @@ void platform_watchdog_init(void)
 	IWDG_ReloadCounter();
 }
 
-static const char *get_rst_src(void)
+enum
 {
-	if(RCC_GetFlagStatus(RCC_FLAG_LPWRRST)) return "low power";
-	if(RCC_GetFlagStatus(RCC_FLAG_WWDGRST)) return "window watchdog";
-	if(RCC_GetFlagStatus(RCC_FLAG_IWDGRST)) return "independent watchdog";
-	if(RCC_GetFlagStatus(RCC_FLAG_SFTRST)) return "software";
-	if(RCC_GetFlagStatus(RCC_FLAG_PORRST)) return "power on power down";
-	if(RCC_GetFlagStatus(RCC_FLAG_PINRST)) return "reset pin";
-	if(RCC_GetFlagStatus(RCC_FLAG_BORRST)) return "brownout";
-	return "unknown";
+	RST_LP = 0,
+	RST_WWDG,
+	RST_IWDG,
+	RST_POR,
+	RST_PIN,
+	RST_SFT,
+	RST_BOR,
+};
+
+uint32_t platform_handle_reset_cause(void)
+{
+	uint32_t v = 0;
+
+	if(RCC_GetFlagStatus(RCC_FLAG_LPWRRST)) v |= 1 << RST_LP;
+	if(RCC_GetFlagStatus(RCC_FLAG_WWDGRST)) v |= 1 << RST_WWDG;
+	if(RCC_GetFlagStatus(RCC_FLAG_IWDGRST)) v |= 1 << RST_IWDG;
+	if(RCC_GetFlagStatus(RCC_FLAG_PORRST)) v |= 1 << RST_POR;
+	if(RCC_GetFlagStatus(RCC_FLAG_PINRST)) v |= 1 << RST_PIN;
+	if(RCC_GetFlagStatus(RCC_FLAG_SFTRST)) v |= 1 << RST_SFT;
+	if(RCC_GetFlagStatus(RCC_FLAG_BORRST)) v |= 1 << RST_BOR;
+
+	RCC_ClearFlag();
+	return v;
 }
 
-const char *paltform_reset_cause_get(void)
+const char *platform_reset_cause_get(uint32_t v)
 {
-	const char *src = get_rst_src();
-	RCC_ClearFlag();
-	return src;
+	if(v & (1 << RST_LP)) return "low power";
+	if(v & (1 << RST_WWDG)) return "w watchdog";
+	if(v & (1 << RST_IWDG)) return "i watchdog";
+	if(v & (1 << RST_POR)) return "pwr on";
+	if(v & (1 << RST_PIN)) return "pin";
+	if(v & (1 << RST_BOR)) return "brownout";
+	if(v & (1 << RST_SFT)) return "soft";
+	return "unknown";
 }
