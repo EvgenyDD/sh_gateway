@@ -12,6 +12,7 @@
 #include "load_switcher.h"
 #include "lss_helper.h"
 #include "lwip/stats.h"
+#include "mains_sense.h"
 #include "pc.h"
 #include "platform.h"
 #include "poe_switcher.h"
@@ -378,6 +379,17 @@ static void poe_sw_cb(const char *arg, int l, int *ret)
 	}
 }
 
+static void mains_get_cb(const char *arg, int l, int *ret)
+{
+	_PRINTF("Mains: %ld %ld\n", mains_stat_get_cnt(0), mains_stat_get_hit(0));
+}
+
+static void mains_rst_cb(const char *arg, int l, int *ret)
+{
+	mains_stat_rst(0);
+	_PRINTF("Mains resetted\n");
+}
+
 const console_cmd_t console_cmd[] = {
 	{"fw", fw_cb},
 	{"reset", reset_cb},
@@ -419,6 +431,8 @@ const console_cmd_t console_cmd[] = {
 	{"cfg_mains_sns", cfg_mains_sns_cb},
 	{"cfg_poe_sw", cfg_poe_sw_cb},
 	{"poe_sw", poe_sw_cb},
+	{"mg", mains_get_cb},
+	{"mr", mains_rst_cb},
 };
 
 const uint32_t console_cmd_sz = sizeof(console_cmd) / sizeof(console_cmd[0]);

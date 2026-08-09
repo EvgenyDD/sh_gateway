@@ -5,7 +5,7 @@
 
 #define PWR_SCALE 1600.0f // imp/kWh
 
-#define BASELINE_DARK 3980
+#define BASELINE_DARK 2000
 
 #define Q_SIZE 64
 #define NOISE_MARGIN 2048

@@ -20,7 +20,28 @@ static struct
 	bool on_phase;
 	bool on;
 	uint32_t cnt_on;
+	uint32_t cnt_hit;
+	uint32_t cnt_on_max;
+	uint32_t cnt_on_max_hit;
 } inst[NUM_CH] = {0};
+
+void mains_stat_rst(uint8_t ch)
+{
+	if(ch >= NUM_CH) return;
+	inst[ch].cnt_on_max = 0;
+}
+
+uint32_t mains_stat_get_cnt(uint8_t ch)
+{
+	if(ch >= NUM_CH) return 0;
+	return inst[ch].cnt_on_max;
+}
+
+uint32_t mains_stat_get_hit(uint8_t ch)
+{
+	if(ch >= NUM_CH) return 0;
+	return inst[ch].cnt_on_max_hit;
+}
 
 void mains_sense_init(void)
 {
@@ -67,6 +88,11 @@ void mains_sense_poll(uint32_t diff_ms)
 				{
 					inst[i].tmr_on = 0;
 					inst[i].on = inst[i].cnt_on > 0;
+					if(inst[i].cnt_on_max < inst[i].cnt_on)
+					{
+						inst[i].cnt_on_max = inst[i].cnt_on;
+						inst[i].cnt_on_max_hit = inst[i].cnt_hit;
+					}
 					inst[i].on_phase = false;
 					port_ctrl[i]->BSRRH = pins_ctrl[i]; // off
 				}
@@ -79,6 +105,7 @@ void mains_sense_poll(uint32_t diff_ms)
 					inst[i].tmr_off = 0;
 					inst[i].on_phase = true;
 					inst[i].cnt_on = 0;
+					inst[i].cnt_hit = 0;
 					port_ctrl[i]->BSRRL = pins_ctrl[i]; // on
 				}
 			}
