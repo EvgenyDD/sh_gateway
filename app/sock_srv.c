@@ -6,7 +6,7 @@
 
 extern void cb_srv_sock_rx(struct tcp_pcb *tpcb, const struct pbuf *p);
 
-static struct tcp_pcb *tcp_echoserver_pcb;
+// static struct tcp_pcb *tcp_echoserver_pcb;
 
 static void tcp_echoserver_error(void *arg, err_t err)
 {
@@ -27,7 +27,7 @@ static void tcp_echoserver_send(struct tcp_pcb *tpcb, struct tcp_echoserver_stru
 
 		if(wr_err == ERR_OK)
 		{
-			u16_t plen = ptr->len;
+			/* u16_t plen = ptr->len*/;
 			// _PRINTF("... x%x x%x | %d\n", ptr, ptr->next, ptr->ref);
 			es->p = ptr->next;
 			if(es->p != NULL)
@@ -35,9 +35,9 @@ static void tcp_echoserver_send(struct tcp_pcb *tpcb, struct tcp_echoserver_stru
 				_PRINTF("pb ref\n");
 				pbuf_ref(es->p);
 			}
-			int rc = pbuf_free(ptr); // free pbuf: will free pbufs up to es->p (because es->p has a reference count > 0)
-									 // _PRINTF("\tdestroy x%x unref %d\n", ptr, rc);
-									 // tcp_recved(tpcb, plen); // Update tcp window size to be advertized : should be called when received data (with the amount plen) has been processed by the application layer
+			/*int rc =*/pbuf_free(ptr); // free pbuf: will free pbufs up to es->p (because es->p has a reference count > 0)
+										// _PRINTF("\tdestroy x%x unref %d\n", ptr, rc);
+										// tcp_recved(tpcb, plen); // Update tcp window size to be advertized : should be called when received data (with the amount plen) has been processed by the application layer
 		}
 		else if(wr_err == ERR_MEM)
 		{

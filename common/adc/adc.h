@@ -4,7 +4,7 @@
 #include <stdint.h>
 typedef struct
 {
-	float vin, vout, ir, i_sns, t_mcu;
+	float vin, vout, ir, i_sns, t_mcu, poe_sns[3];
 } adc_val_t;
 
 void adc_init(void);

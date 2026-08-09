@@ -98,6 +98,7 @@ typedef struct
   
   uint8_t RTC_Year;     /*!< Specifies the RTC Date Year.
                         This parameter must be set to a value in the 0-99 range. */
+  uint16_t RTC_Year_True;
 }RTC_DateTypeDef;
 
 /** 

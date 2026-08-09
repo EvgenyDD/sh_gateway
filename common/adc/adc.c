@@ -15,6 +15,9 @@ enum
 	ADC_CH_I_SNS,
 	ADC_CH_T_MCU,
 	ADC_CH_VREFINT,
+	ADC_CH_POE_0,
+	ADC_CH_POE_1,
+	ADC_CH_POE_2,
 	ADC_CH,
 };
 
@@ -29,10 +32,13 @@ static float adcVREFINTCAL, adcTSCAL1, adcTSSlopeK;
 void adc_init(void)
 {
 	GPIO_InitTypeDef GPIO_InitStructure;
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_3 | GPIO_Pin_5 | GPIO_Pin_6;
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_3 | GPIO_Pin_4 | GPIO_Pin_5 | GPIO_Pin_6;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AN;
 	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_1;
+	GPIO_Init(GPIOB, &GPIO_InitStructure);
 
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_DMA2, ENABLE);
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1, ENABLE);
@@ -83,6 +89,10 @@ void adc_init(void)
 	ADC_RegularChannelConfig(ADC1, ADC_Channel_TempSensor, 5, ADC_SampleTime_480Cycles);
 	ADC_RegularChannelConfig(ADC1, ADC_Channel_Vrefint, 6, ADC_SampleTime_480Cycles);
 
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_4, 7, ADC_SampleTime_15Cycles); // PA4
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_8, 8, ADC_SampleTime_15Cycles); // PB0
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_9, 9, ADC_SampleTime_15Cycles); // PB1
+
 	ADC_DMARequestAfterLastTransferCmd(ADC1, ENABLE);
 
 	ADC_DMACmd(ADC1, ENABLE);
@@ -120,4 +130,7 @@ void adc_track(void)
 	adc_val.i_sns = (2048.0f - (float)buf_acc[ADC_CH_I_SNS]) / (0.02f * 20.0f / 3.3f * 4095.0f); // 2mA quant
 	adc_val.ir = adc_buf[ADC_CH_IR];
 	adc_val.t_mcu = ((float)buf_acc[ADC_CH_T_MCU] * adcVREFINTCAL / (float)buf_acc[ADC_CH_VREFINT] - adcTSCAL1) * adcTSSlopeK + 30.0f;
+	adc_val.poe_sns[0] = (float)buf_acc[ADC_CH_POE_0] / (0.02f * 50.0f / 3.3f * 4095.0f); // 0.8ma quant
+	adc_val.poe_sns[1] = (float)buf_acc[ADC_CH_POE_1] / (0.02f * 50.0f / 3.3f * 4095.0f); // 0.8ma quant
+	adc_val.poe_sns[2] = (float)buf_acc[ADC_CH_POE_2] / (0.02f * 50.0f / 3.3f * 4095.0f); // 0.8ma quant
 }

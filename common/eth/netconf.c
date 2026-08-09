@@ -59,7 +59,7 @@ static ETH_InitTypeDef ETH_InitStructure;
 
 static uint32_t tmr_tcp = 0;
 static uint32_t tmr_arp = 0;
-static uint32_t IPaddress = 0;
+// static uint32_t IPaddress = 0;
 static uint32_t tmr_link_check = 0;
 
 #if LWIP_DHCP

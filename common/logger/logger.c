@@ -12,8 +12,8 @@ enum
 	__assert_fram_logger_align = 1 / (((FRAM_SIZE - FRAM_LOG_OFFSET) % FRAM_QUANT) != 0 ? 0 : 1)
 };
 
-static uint32_t last_addr = 0;
-static uint32_t count = 0; // entries count
+// static uint32_t last_addr = 0;
+// static uint32_t count = 0; // entries count
 
 // int logger_init(void)
 // {

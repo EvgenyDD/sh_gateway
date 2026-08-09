@@ -82,7 +82,7 @@ static void cb_udp_console(void *arg, struct udp_pcb *udp, struct pbuf *p, struc
 	}
 
 	uint16_t l;
-	int32_t idx;
+	// int32_t idx;
 
 	const char *param = 0;
 

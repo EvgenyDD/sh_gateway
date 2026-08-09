@@ -14,6 +14,7 @@
 #include "lwip/stats.h"
 #include "pc.h"
 #include "platform.h"
+#include "poe_switcher.h"
 #include "ret_mem.h"
 #include "rtc.h"
 #include "sdo.h"
@@ -29,6 +30,9 @@
 extern int gsts;
 
 extern uint32_t lwip_assert_counter;
+
+extern uint32_t g_mains_sns_chnl_bits;
+extern uint32_t g_poe_sw_chnl_bits;
 
 extern CO_t *CO;
 #include "console_can.h"
@@ -235,6 +239,7 @@ static void adc_cb(const char *arg, int l, int *ret)
 	_PRINTF("Is:    %.3f\n", adc_val.i_sns);
 	_PRINTF("IR:    %.0f\n", adc_val.ir);
 	_PRINTF("t MCU: %.0f\n", adc_val.t_mcu);
+	_PRINTF("I POE: %.3f %.3f %.3f\n", adc_val.poe_sns[0], adc_val.poe_sns[1], adc_val.poe_sns[2]);
 }
 
 static void pc_cb(const char *arg, int l, int *ret)
@@ -278,14 +283,34 @@ static void sli_cb(const char *arg, int l, int *ret)
 	// }
 }
 
-static void rtc_cb(const char *arg, int l, int *ret)
+static void timedate_cb(const char *req, int len, int *ret)
 {
-	RTC_DateTypeDef d;
-	RTC_TimeTypeDef t;
-	mcu_rtc_get_date(&d);
-	mcu_rtc_get_time(&t);
-	_PRINTF("gs %d\n", gsts);
-	_PRINTF("RTC: %d %d %d : %d - %d %d %d\n", d.RTC_Month, d.RTC_Date, d.RTC_Year, d.RTC_WeekDay, t.RTC_Hours, t.RTC_Minutes, t.RTC_Seconds);
+	if(len)
+	{
+		unsigned int year, weekday, month, date;
+		unsigned int hours, minutes, seconds;
+		int n = sscanf(req, "%u %u %u %u %u %u %u",
+					   &year, &month, &date, &weekday,
+					   &hours, &minutes, &seconds);
+		if(n == 7)
+		{
+			int sts0 = mcu_rtc_set_date(year, weekday, month, date);
+			int sts1 = mcu_rtc_set_time(hours, minutes, seconds);
+			_PRINTF("Set: %u/%u/%u (%u) - %u:%u:%u | status [%d %d]\n",
+					year, month, date, weekday,
+					hours, minutes, seconds,
+					sts0, sts1);
+			return;
+		}
+	}
+	RTC_DateTypeDef date;
+	RTC_TimeTypeDef time;
+	mcu_rtc_get_date(&date);
+	mcu_rtc_get_time(&time);
+
+	_PRINTF("%04d/%02d/%02d (%s) - %02d:%02d:%02d\n",
+			date.RTC_Year_True, date.RTC_Month, date.RTC_Date, mcu_rtc_weekday(date.RTC_WeekDay),
+			time.RTC_Hours, time.RTC_Minutes, time.RTC_Seconds);
 }
 
 static void co_gtw_cb(const char *arg, int l, int *ret)
@@ -304,6 +329,55 @@ static void co_gtw_cb(const char *arg, int l, int *ret)
 	_PRINTF("\ngtw act (%d)\n", len);
 }
 
+#define BIT_WR(reg, bit, val) ((val) ? ((reg) |= (1UL << (bit))) : ((reg) &= ~(1UL << (bit))))
+
+static void cfg_mains_sns_cb(const char *arg, int l, int *ret)
+{
+	unsigned int ch = 0, en = 0;
+	int n = sscanf(arg, "%u %u", &ch, &en);
+	if(n != 2)
+	{
+		_PRINTF("Wrong format! \"chnl en\"\n");
+		return;
+	}
+	if(ch < 32) BIT_WR(g_mains_sns_chnl_bits, ch, en);
+	_PRINTF("New Mains Sense mask: x%lx\n", g_mains_sns_chnl_bits);
+}
+
+static void cfg_poe_sw_cb(const char *arg, int l, int *ret)
+{
+	unsigned int ch = 0, en = 0;
+	int n = sscanf(arg, "%u %u", &ch, &en);
+	if(n != 2)
+	{
+		_PRINTF("Wrong format! \"chnl en\"\n");
+		return;
+	}
+	if(ch < 32) BIT_WR(g_poe_sw_chnl_bits, ch, en);
+	_PRINTF("New POE Switch mask: x%lx\n", g_poe_sw_chnl_bits);
+}
+static void poe_sw_cb(const char *arg, int l, int *ret)
+{
+	unsigned int ch = 0, en = 0;
+	int n = sscanf(arg, "%u %u", &ch, &en);
+	if(n != 2)
+	{
+		_PRINTF("POE #0: %d\n", poe_switcher_is_on(0));
+		return;
+	}
+
+	if(en)
+	{
+		_PRINTF("POE ON\n");
+		poe_switcher_on(ch);
+	}
+	else
+	{
+		_PRINTF("POE OFF\n");
+		poe_switcher_off(ch);
+	}
+}
+
 const console_cmd_t console_cmd[] = {
 	{"fw", fw_cb},
 	{"reset", reset_cb},
@@ -315,7 +389,7 @@ const console_cmd_t console_cmd[] = {
 	{"loff", loff_cb},
 	{"adc", adc_cb},
 	{"pc", pc_cb},
-	{"rtc", rtc_cb},
+	{"time", timedate_cb},
 
 	{"sock_mst_ip", sock_mst_ip_cb},
 	{"sock_gw_ip", sock_gw_ip_cb},
@@ -341,6 +415,10 @@ const console_cmd_t console_cmd[] = {
 	{"sli", sli_cb},
 
 	{"gtw", co_gtw_cb},
+
+	{"cfg_mains_sns", cfg_mains_sns_cb},
+	{"cfg_poe_sw", cfg_poe_sw_cb},
+	{"poe_sw", poe_sw_cb},
 };
 
 const uint32_t console_cmd_sz = sizeof(console_cmd) / sizeof(console_cmd[0]);

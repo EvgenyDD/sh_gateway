@@ -52,16 +52,16 @@ int fram_init(void)
 
 void fram_data_read(void)
 {
-	uint8_t data_rx[128];
-	for(uint32_t i = 0; i * sizeof(data_rx) < sizeof(fram_data); i++)
-	{
-		fram_read(i * sizeof(data_rx), data_rx, sizeof(data_rx));
-		memcpy(&(((uint8_t *)&fram_data)[i * sizeof(data_rx)]),
-			   data_rx,
-			   (i + 1) * sizeof(data_rx) > sizeof(fram_data)
-				   ? (i + 1) * sizeof(data_rx) - sizeof(fram_data)
-				   : sizeof(data_rx));
-	}
+	// uint8_t data_rx[128];
+	// for(uint32_t i = 0; i * sizeof(data_rx) < sizeof(fram_data); i++)
+	// {
+	// 	fram_read(i * sizeof(data_rx), data_rx, sizeof(data_rx));
+	// 	memcpy(&(((uint8_t *)&fram_data)[i * sizeof(data_rx)]),
+	// 		   data_rx,
+	// 		   (i + 1) * sizeof(data_rx) > sizeof(fram_data)
+	// 			   ? (i + 1) * sizeof(data_rx) - sizeof(fram_data)
+	// 			   : sizeof(data_rx));
+	// }
 }
 
 void fram_data_write(void)

@@ -19,8 +19,10 @@
 #include "load_switcher.h"
 #include "logger.h"
 #include "lss_cb.h"
+#include "mains_sense.h"
 #include "pc.h"
 #include "platform.h"
+#include "poe_switcher.h"
 #include "prof.h"
 #include "ret_mem.h"
 #include "rtc.h"
@@ -44,6 +46,8 @@ bool g_stay_in_boot = false;
 uint8_t g_ip_address[4] = {192, 168, 0, 200};
 uint8_t g_ip_addr_master[4] = {0, 0, 0, 0};
 uint8_t g_ip_addr_gw[4 * GW_COUNT] = {0, 0, 0, 0};
+uint32_t g_mains_sns_chnl_bits = 0;
+uint32_t g_poe_sw_chnl_bits = 0;
 
 CO_t *CO = NULL;
 uint32_t g_uid[3];
@@ -72,6 +76,8 @@ config_entry_t g_device_config[] = {
 	{"ip", sizeof(g_ip_address), 0, &g_ip_address},
 	{"ip_mst", sizeof(g_ip_addr_master), 0, &g_ip_addr_master},
 	{"ip_gw", sizeof(g_ip_addr_gw), 0, &g_ip_addr_gw},
+	{"mains_chnls", sizeof(g_mains_sns_chnl_bits), 0, &g_mains_sns_chnl_bits},
+	{"poe_sw", sizeof(g_poe_sw_chnl_bits), 0, &g_poe_sw_chnl_bits},
 };
 const uint32_t g_device_config_count = sizeof(g_device_config) / sizeof(g_device_config[0]);
 
@@ -121,7 +127,7 @@ void cb_srv_sock_rx(struct tcp_pcb *tpcb, const struct pbuf *p);
 void cb_srv_sock_rx(struct tcp_pcb *tpcb, const struct pbuf *p)
 {
 	last_gtwa_pcb = tpcb;
-	size_t len = CO_GTWA_write(CO->gtwa, p->payload, p->len);
+	/*size_t len =*/CO_GTWA_write(CO->gtwa, p->payload, p->len);
 	tcp_recved(tpcb, p->len);
 }
 
@@ -169,7 +175,7 @@ __attribute__((noreturn)) void main(void)
 	fw_header_check_all();
 
 	ret_mem_init();
-	ret_mem_set_load_src(LOAD_SRC_APP); // let preboot know it was booted from bootloader
+	ret_mem_set_load_src(LOAD_SRC_APP); // let preboot know it was booted from app
 	ret_mem_set_rst_cause_app(platform_handle_reset_cause());
 
 	load_switcher_init();
@@ -189,6 +195,9 @@ __attribute__((noreturn)) void main(void)
 	fram_data_read();
 
 	if(config_validate() == CONFIG_STS_OK) config_read_storage();
+
+	poe_switcher_init();
+	mains_sense_init();
 
 	// logger_init();
 
@@ -311,6 +320,8 @@ __attribute__((noreturn)) void main(void)
 
 				CO_CANinterrupt(CO->CANmodule);
 				reset = CO_process(CO, true, diff_us, NULL);
+				bool sync_was = CO_process_SYNC(CO, diff_us, NULL);
+				CO_process_TPDO(CO, sync_was, diff_us, NULL);
 				lss_cb_poll(&lss_obj, diff_us);
 
 				system_time += diff_ms;
@@ -325,12 +336,30 @@ __attribute__((noreturn)) void main(void)
 				}
 				else
 				{
-					GPIOE->ODR &= (uint32_t) ~(1 << 4);
+					GPIOE->ODR &= (uint32_t)~(1 << 4);
 				}
 
 				adc_track();
 				pc_poll(diff_ms);
 				emeter_poll(diff_ms);
+				mains_sense_poll(diff_ms);
+
+				static bool prev_mains_sw_0 = false;
+				if(prev_mains_sw_0 != mains_sense_is_on(0))
+				{
+					if(mains_sense_is_on(0)) // rising
+					{
+						_PRINTF("POE switching ON #0\n");
+						poe_switcher_on(0);
+					}
+					else
+					{
+						_PRINTF("POE switching OFF #0\n");
+						poe_switcher_off(0);
+					}
+					_PRINTF("CH 0 SNS: %d -> %d\n", prev_mains_sw_0, mains_sense_is_on(0));
+				}
+				prev_mains_sw_0 = mains_sense_is_on(0);
 
 				if(sock_cli_mst_ready) sock_cli_poll(&sock_slv_mst, diff_ms);
 				for(uint32_t i = 0; i < GW_COUNT; i++)
@@ -344,15 +373,23 @@ __attribute__((noreturn)) void main(void)
 					_PRINTF("FAULT! Load Switcher! %d\n", sts);
 				}
 
-				if(aht21_data.sensor_present) aht21_poll(diff_ms);
+				poe_switcher_poll(diff_ms);
+				static bool prev_poe_sw_0 = false;
+				if(prev_poe_sw_0 != poe_switcher_is_on(0))
+				{
+					_PRINTF("!POE 0: %d -> %d\n", prev_poe_sw_0, poe_switcher_is_on(0));
+				}
+				prev_poe_sw_0 = poe_switcher_is_on(0);
+
+				if(aht21.exist) aht21_poll(diff_ms);
 
 				OD_RAM.x6000_power.energy = emeter_get_energy_kwh();
 				OD_RAM.x6000_power.power = emeter_get_power_kw();
 				OD_RAM.x6000_power.cnt = emeter_get_cnt();
 
 				OD_RAM.x6201_th_sensors.temp_cpu = adc_val.t_mcu;
-				OD_RAM.x6201_th_sensors.temp_aht = aht21_data.temp;
-				OD_RAM.x6201_th_sensors.hum_aht = aht21_data.hum;
+				OD_RAM.x6201_th_sensors.temp_aht = aht21.temp;
+				OD_RAM.x6201_th_sensors.hum_aht = aht21.hum;
 
 				OD_RAM.x6200_sys_pwr_sensors.u_in = adc_val.vin;
 				OD_RAM.x6200_sys_pwr_sensors.u_out = adc_val.vout;
