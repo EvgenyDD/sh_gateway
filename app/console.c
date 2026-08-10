@@ -35,6 +35,8 @@ extern uint32_t lwip_assert_counter;
 extern uint32_t g_mains_sns_chnl_bits;
 extern uint32_t g_poe_sw_chnl_bits;
 
+uint32_t ir_min = 4095, ir_max = 0;
+
 extern CO_t *CO;
 #include "console_can.h"
 
@@ -382,12 +384,15 @@ static void poe_sw_cb(const char *arg, int l, int *ret)
 static void mains_get_cb(const char *arg, int l, int *ret)
 {
 	_PRINTF("Mains: %ld %ld\n", mains_stat_get_cnt(0), mains_stat_get_hit(0));
+	_PRINTF("IR: %ld %ld\n", ir_min, ir_max);
 }
 
 static void mains_rst_cb(const char *arg, int l, int *ret)
 {
 	mains_stat_rst(0);
 	_PRINTF("Mains resetted\n");
+	ir_max = 0;
+	ir_min = 4095;
 }
 
 const console_cmd_t console_cmd[] = {

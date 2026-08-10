@@ -82,12 +82,14 @@ void mains_sense_poll(uint32_t diff_ms)
 			if(inst[i].on_phase)
 			{
 				inst[i].tmr_on += diff_ms;
+
 				if(!(port_sns[i]->IDR & pins_sns[i])) inst[i].cnt_on++;
+				inst[i].cnt_hit++;
 
 				if(inst[i].tmr_on >= TIME_ON_MS)
 				{
 					inst[i].tmr_on = 0;
-					inst[i].on = inst[i].cnt_on > 0;
+					inst[i].on = inst[i].cnt_on > (inst[i].cnt_hit / 2);
 					if(inst[i].cnt_on_max < inst[i].cnt_on)
 					{
 						inst[i].cnt_on_max = inst[i].cnt_on;

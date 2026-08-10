@@ -30,6 +30,8 @@
 #include "sock_srv.h"
 #include "spi_common.h"
 
+extern uint32_t ir_min, ir_max;
+
 int gsts = -10;
 
 #define SYSTICK_IN_US (168000000 / 1000000)
@@ -338,6 +340,9 @@ __attribute__((noreturn)) void main(void)
 				{
 					GPIOE->ODR &= (uint32_t)~(1 << 4);
 				}
+
+				if(ir_min > adc_val.ir) ir_min = adc_val.ir;
+				if(ir_max < adc_val.ir) ir_max = adc_val.ir;
 
 				adc_track();
 				pc_poll(diff_ms);
