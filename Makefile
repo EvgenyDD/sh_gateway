@@ -119,7 +119,7 @@ $(SIGN): sign/sign.c
 	@gcc $< -o $@
 
 $(BINARY_SIGNED): $(BINARY) $(SIGN)
-	@$(SIGN) $(BINARY) $@ 503808 \
+	@$(SIGN) $(BINARY) $@ 393216 \
 		prod=$(EXE_NAME) \
 		prod_name=$(EXE_NAME)_app \
 		ver_maj=$(VER_MAJ) \
@@ -184,6 +184,14 @@ define tftp_flash
 	@powershell -Command "(New-Object System.Net.Sockets.UdpClient).'Send'([System.Text.Encoding]::ASCII.'GetBytes'('reset'), 5, '7.7.7.$(1)', 2000)"
 endef
 
+define tftp_flash_192
+	@powershell -Command "(New-Object System.Net.Sockets.UdpClient).'Send'([System.Text.Encoding]::ASCII.'GetBytes'('reset'), 5, '192.168.0.$(1)', 2000)"
+	@sleep 0.1
+	curl -T $(2) tftp://192.168.0.$(1)/sh_gw_app
+	@sleep 0.1
+	@powershell -Command "(New-Object System.Net.Sockets.UdpClient).'Send'([System.Text.Encoding]::ASCII.'GetBytes'('reset'), 5, '192.168.0.$(1)', 2000)"
+endef
+
 10: $(BINARY_SIGNED)
 	$(call atftp_flash,10,$<)
 11: $(BINARY_SIGNED)
@@ -197,3 +205,6 @@ w11: $(BINARY_SIGNED)
 	$(call tftp_flash,11,$<)
 w12: $(BINARY_SIGNED)
 	$(call tftp_flash,12,$<)
+
+w200: $(BINARY_SIGNED)
+	$(call tftp_flash_192,200,$<)
