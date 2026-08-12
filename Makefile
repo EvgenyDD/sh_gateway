@@ -196,7 +196,7 @@ endef
 	$(call atftp_flash,10,$<)
 11: $(BINARY_SIGNED)
 	$(call atftp_flash,11,$<)
-l12: $(BINARY_SIGNED)
+12: $(BINARY_SIGNED)
 	$(call atftp_flash,12,$<)
 
 w10: $(BINARY_SIGNED)
