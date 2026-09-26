@@ -14,11 +14,7 @@
  */
 #define NO_SYS 1
 
-/**
- * NO_SYS_NO_TIMERS==1: Drop support for sys_timeout when NO_SYS==1
- * Mainly for compatibility to old versions.
- */
-#define NO_SYS_NO_TIMERS 1
+#define LWIP_TIMERS 1
 
 /* ---------- Memory options ---------- */
 /* MEM_ALIGNMENT: should be set to the alignment of the CPU for which
@@ -176,40 +172,40 @@ The STM32F4x7 allows computing and verifying the IP, UDP, TCP and ICMP checksums
 // #define LWIP_DEBUG                      1
 
 #if 0
-#define ETHARP_DEBUG                    LWIP_DBG_ON
-#define NETIF_DEBUG                     LWIP_DBG_ON
-#define PBUF_DEBUG                      LWIP_DBG_ON
-#define API_LIB_DEBUG                   LWIP_DBG_ON
-#define API_MSG_DEBUG                   LWIP_DBG_ON
-#define SOCKETS_DEBUG                   LWIP_DBG_ON
-#define ICMP_DEBUG                      LWIP_DBG_ON
-#define IGMP_DEBUG                      LWIP_DBG_ON
-#define INET_DEBUG                      LWIP_DBG_ON
-#define IP_DEBUG                        LWIP_DBG_ON
-#define IP_REASS_DEBUG                  LWIP_DBG_ON
-#define RAW_DEBUG                       LWIP_DBG_ON
-#define MEM_DEBUG                       LWIP_DBG_ON
-#define MEMP_DEBUG                      LWIP_DBG_ON
-#define SYS_DEBUG                       LWIP_DBG_ON
-#define TIMERS_DEBUG                    LWIP_DBG_ON
-#define TCP_DEBUG                       LWIP_DBG_ON
-#define TCP_INPUT_DEBUG                 LWIP_DBG_ON
-#define TCP_FR_DEBUG                    LWIP_DBG_ON
-#define TCP_RTO_DEBUG                   LWIP_DBG_ON
-#define TCP_CWND_DEBUG                  LWIP_DBG_ON
-#define TCP_WND_DEBUG                   LWIP_DBG_ON
-#define TCP_OUTPUT_DEBUG                LWIP_DBG_ON
-#define TCP_RST_DEBUG                   LWIP_DBG_ON
-#define TCP_QLEN_DEBUG                  LWIP_DBG_ON
-#define UDP_DEBUG                       LWIP_DBG_ON
-#define TCPIP_DEBUG                     LWIP_DBG_ON
-#define PPP_DEBUG                       LWIP_DBG_ON
-#define SLIP_DEBUG                      LWIP_DBG_ON
-#define DHCP_DEBUG                      LWIP_DBG_ON
-#define AUTOIP_DEBUG                    LWIP_DBG_ON
-#define SNMP_MSG_DEBUG                  LWIP_DBG_ON
-#define SNMP_MIB_DEBUG                  LWIP_DBG_ON
-#define DNS_DEBUG                       LWIP_DBG_ON
+#define ETHARP_DEBUG LWIP_DBG_ON
+#define NETIF_DEBUG LWIP_DBG_ON
+#define PBUF_DEBUG LWIP_DBG_ON
+#define API_LIB_DEBUG LWIP_DBG_ON
+#define API_MSG_DEBUG LWIP_DBG_ON
+#define SOCKETS_DEBUG LWIP_DBG_ON
+#define ICMP_DEBUG LWIP_DBG_ON
+#define IGMP_DEBUG LWIP_DBG_ON
+#define INET_DEBUG LWIP_DBG_ON
+#define IP_DEBUG LWIP_DBG_ON
+#define IP_REASS_DEBUG LWIP_DBG_ON
+#define RAW_DEBUG LWIP_DBG_ON
+#define MEM_DEBUG LWIP_DBG_ON
+#define MEMP_DEBUG LWIP_DBG_ON
+#define SYS_DEBUG LWIP_DBG_ON
+#define TIMERS_DEBUG LWIP_DBG_ON
+#define TCP_DEBUG LWIP_DBG_ON
+#define TCP_INPUT_DEBUG LWIP_DBG_ON
+#define TCP_FR_DEBUG LWIP_DBG_ON
+#define TCP_RTO_DEBUG LWIP_DBG_ON
+#define TCP_CWND_DEBUG LWIP_DBG_ON
+#define TCP_WND_DEBUG LWIP_DBG_ON
+#define TCP_OUTPUT_DEBUG LWIP_DBG_ON
+#define TCP_RST_DEBUG LWIP_DBG_ON
+#define TCP_QLEN_DEBUG LWIP_DBG_ON
+#define UDP_DEBUG LWIP_DBG_ON
+#define TCPIP_DEBUG LWIP_DBG_ON
+#define PPP_DEBUG LWIP_DBG_ON
+#define SLIP_DEBUG LWIP_DBG_ON
+#define DHCP_DEBUG LWIP_DBG_ON
+#define AUTOIP_DEBUG LWIP_DBG_ON
+#define SNMP_MSG_DEBUG LWIP_DBG_ON
+#define SNMP_MIB_DEBUG LWIP_DBG_ON
+#define DNS_DEBUG LWIP_DBG_ON
 #endif
 
 #endif /* __LWIPOPTS_H__ */

@@ -19,7 +19,7 @@ typedef struct
 	uint32_t data_len;
 
 	/* destination ip:port */
-	struct ip_addr to_ip;
+	ip_addr_t to_ip;
 	int to_port;
 
 	/* next block number */
@@ -42,7 +42,7 @@ const char *tftp_errorcode_string[] = {
 	"no such user",
 };
 
-static void recv_callback_tftp(void *arg, struct udp_pcb *upcb, struct pbuf *pkt_buf, struct ip_addr *addr, u16_t port);
+static void recv_callback_tftp(void *arg, struct udp_pcb *upcb, struct pbuf *pkt_buf, const ip_addr_t *addr, u16_t port);
 
 static void tftp_cleanup_rd(struct udp_pcb *upcb, tftp_connection_args *args)
 {
@@ -69,7 +69,7 @@ static uint32_t tftp_construct_error_message(char *buf, tftp_errorcode err)
 	return 4 + strlen(s) + 1;
 }
 
-static err_t tftp_send_message(struct udp_pcb *upcb, struct ip_addr *to_ip, unsigned short to_port, char *buf, unsigned short buflen)
+static err_t tftp_send_message(struct udp_pcb *upcb, const ip_addr_t *to_ip, unsigned short to_port, char *buf, unsigned short buflen)
 {
 	struct pbuf *pkt_buf = pbuf_alloc(PBUF_TRANSPORT, buflen, PBUF_POOL);
 	if(!pkt_buf) return ERR_MEM;
@@ -79,7 +79,7 @@ static err_t tftp_send_message(struct udp_pcb *upcb, struct ip_addr *to_ip, unsi
 	return err;
 }
 
-static int tftp_send_error_message(struct udp_pcb *upcb, struct ip_addr *to, int to_port, tftp_errorcode err)
+static int tftp_send_error_message(struct udp_pcb *upcb, const ip_addr_t *to, int to_port, tftp_errorcode err)
 {
 	PRINTF("TFTP abt: %d\n", err);
 	char buf[512];
@@ -87,7 +87,7 @@ static int tftp_send_error_message(struct udp_pcb *upcb, struct ip_addr *to, int
 	return tftp_send_message(upcb, to, to_port, buf, error_len);
 }
 
-static int tftp_send_ack_packet(struct udp_pcb *upcb, struct ip_addr *to, int to_port, unsigned short block)
+static int tftp_send_ack_packet(struct udp_pcb *upcb, const ip_addr_t *to, int to_port, unsigned short block)
 {
 	char packet[TFTP_ACK_PKT_LEN];
 	tftp_set_opcode(packet, TFTP_ACK);
@@ -110,7 +110,7 @@ static int tftp_send_ack_packet(struct udp_pcb *upcb, struct ip_addr *to, int to
  * @param  port: pointer on remote port
  * @retval None
  */
-static void wrq_recv_callback(void *arg, struct udp_pcb *upcb, struct pbuf *pkt_buf, struct ip_addr *addr, u16_t port)
+static void wrq_recv_callback(void *arg, struct udp_pcb *upcb, struct pbuf *pkt_buf, const ip_addr_t *addr, u16_t port)
 {
 	tftp_connection_args *args = (tftp_connection_args *)arg;
 
@@ -170,7 +170,7 @@ static void wrq_recv_callback(void *arg, struct udp_pcb *upcb, struct pbuf *pkt_
  * @param  to_port: pointer on remote udp port
  * @retval None
  */
-static void tftp_rd_send_next_block(struct udp_pcb *upcb, tftp_connection_args *args, struct ip_addr *to_ip, u16_t to_port)
+static void tftp_rd_send_next_block(struct udp_pcb *upcb, tftp_connection_args *args, const ip_addr_t *to_ip, u16_t to_port)
 {
 	int sts = tftp_cb.read(args->tot_bytes, (uint8_t *)args->data, TFTP_DATA_LEN_MAX, &args->data_len);
 	if(sts)
@@ -197,7 +197,7 @@ static void tftp_rd_send_next_block(struct udp_pcb *upcb, tftp_connection_args *
  * @param  port: pointer on remote udp port
  * @retval None
  */
-static void rrq_recv_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p, struct ip_addr *addr, u16_t port)
+static void rrq_recv_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p, const ip_addr_t *addr, u16_t port)
 {
 	tftp_connection_args *args = (tftp_connection_args *)arg;
 
@@ -232,7 +232,7 @@ static void rrq_recv_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p, s
  * @param  file_name: pointer on filename to be read
  * @retval error code
  */
-static int tftp_process_read(struct udp_pcb *upcb, struct ip_addr *to, unsigned short to_port, char *file_name)
+static int tftp_process_read(struct udp_pcb *upcb, const ip_addr_t *to, unsigned short to_port, char *file_name)
 {
 	tftp_connection_args *args = NULL;
 
@@ -275,7 +275,7 @@ static int tftp_process_read(struct udp_pcb *upcb, struct ip_addr *to, unsigned 
  * @param  file_name: pointer on filename to be written
  * @retval error code
  */
-static int tftp_process_write(struct udp_pcb *upcb, struct ip_addr *to, unsigned short to_port, char *file_name)
+static int tftp_process_write(struct udp_pcb *upcb, const ip_addr_t *to, unsigned short to_port, char *file_name)
 {
 	tftp_connection_args *args = NULL;
 
@@ -309,7 +309,7 @@ static int tftp_process_write(struct udp_pcb *upcb, struct ip_addr *to, unsigned
 	return 0;
 }
 
-static void process_tftp_request(struct pbuf *pkt_buf, struct ip_addr *addr, u16_t port)
+static void process_tftp_request(struct pbuf *pkt_buf, const ip_addr_t *addr, u16_t port)
 {
 	tftp_opcode op = tftp_decode_op(pkt_buf->payload);
 	char file_name[32];
@@ -343,7 +343,7 @@ static void process_tftp_request(struct pbuf *pkt_buf, struct ip_addr *addr, u16
 	}
 }
 
-static void recv_callback_tftp(void *arg, struct udp_pcb *upcb, struct pbuf *pkt_buf, struct ip_addr *addr, u16_t port)
+static void recv_callback_tftp(void *arg, struct udp_pcb *upcb, struct pbuf *pkt_buf, const ip_addr_t *addr, u16_t port)
 {
 	g_stay_in_boot = true;
 	process_tftp_request(pkt_buf, addr, port);

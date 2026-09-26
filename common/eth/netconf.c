@@ -4,7 +4,8 @@
 #include "lwip/mem.h"
 #include "lwip/memp.h"
 #include "lwip/tcp.h"
-#include "lwip/tcp_impl.h"
+// #include "lwip/tcp_impl.h"
+#include "lwip/timeouts.h"
 #include "lwip/udp.h"
 #include "lwipopts.h"
 #include "netconf.h"
@@ -57,8 +58,6 @@ static struct netif gnetif;
 static __IO uint32_t g_eth_status = 0;
 static ETH_InitTypeDef ETH_InitStructure;
 
-static uint32_t tmr_tcp = 0;
-static uint32_t tmr_arp = 0;
 // static uint32_t IPaddress = 0;
 static uint32_t tmr_link_check = 0;
 
@@ -71,9 +70,9 @@ static __IO uint8_t DHCP_state;
 #if LWIP_DHCP
 static void LwIP_DHCP_Process_Handle(void)
 {
-	struct ip_addr ipaddr;
-	struct ip_addr netmask;
-	struct ip_addr gw;
+	ip_addr_t ipaddr;
+	ip_addr_t netmask;
+	ip_addr_t gw;
 	uint8_t iptab[4];
 	uint8_t iptxt[20];
 
@@ -292,9 +291,9 @@ static void cb_eth_link(struct netif *netif)
 
 		ETH_Start(); // Restart MAC interface
 
-		struct ip_addr ipaddr;
-		struct ip_addr netmask;
-		struct ip_addr gw;
+		ip_addr_t ipaddr;
+		ip_addr_t netmask;
+		ip_addr_t gw;
 
 #if LWIP_DHCP
 		ipaddr.addr = 0;
@@ -330,9 +329,9 @@ void LwIP_init(void)
 {
 	eth_board_config();
 
-	struct ip_addr ipaddr;
-	struct ip_addr netmask;
-	struct ip_addr gw;
+	ip_addr_t ipaddr;
+	ip_addr_t netmask;
+	ip_addr_t gw;
 #ifndef LWIP_DHCP
 	uint8_t iptab[4] = {0};
 	uint8_t iptxt[20];
@@ -385,8 +384,6 @@ void LwIP_periodic_handle(__IO uint32_t diff_ms)
 	if(ETH_CheckFrameReceived()) LwIP_packet_handle();
 
 	tmr_link_check += diff_ms;
-	tmr_tcp += diff_ms;
-	tmr_arp += diff_ms;
 
 	if(tmr_link_check >= LINK_CHECK_INTERVAL)
 	{
@@ -398,22 +395,12 @@ void LwIP_periodic_handle(__IO uint32_t diff_ms)
 		}
 		else
 		{
-			g_eth_status &= (uint32_t) ~(ETH_LINK_FLAG);
+			g_eth_status &= (uint32_t)~(ETH_LINK_FLAG);
 			netif_set_link_down(&gnetif);
 		}
 	}
 
-	if(tmr_tcp >= TCP_TMR_INTERVAL) // TCP periodic process every 250 ms
-	{
-		tmr_tcp = 0;
-		tcp_tmr();
-	}
-
-	if(tmr_arp >= ARP_TMR_INTERVAL) // ARP periodic process every 5s
-	{
-		tmr_arp = 0;
-		etharp_tmr();
-	}
+	sys_check_timeouts();
 
 #if LWIP_DHCP
 	if(tmr_dhcp_fine >= DHCP_FINE_TIMER_MSECS) // Fine DHCP periodic process every 500ms

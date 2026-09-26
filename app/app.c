@@ -59,6 +59,7 @@ static uint8_t pending_can_node_id = 1; /* read from dip switches or nonvolatile
 uint16_t pending_can_baud = 500;		/* read from dip switches or nonvolatile memory, configurable by LSS slave */
 
 volatile uint64_t system_time = 0;
+volatile uint32_t sys_time_u32 = 0;
 
 static sock_cli_t sock_slv_mst = {0};
 static sock_cli_t sock_slv_gw[GW_COUNT] = {0};
@@ -327,6 +328,7 @@ __attribute__((noreturn)) void main(void)
 				lss_cb_poll(&lss_obj, diff_us);
 
 				system_time += diff_ms;
+				sys_time_u32 += diff_ms;
 				LwIP_periodic_handle(diff_ms);
 
 				static uint32_t difff = 0;
@@ -410,6 +412,9 @@ __attribute__((noreturn)) void main(void)
 		// 	platform_reset();
 	}
 }
+
+u32_t sys_now(void);
+u32_t sys_now(void) { return sys_time_u32; }
 
 uint32_t lwip_assert_counter = 0;
 

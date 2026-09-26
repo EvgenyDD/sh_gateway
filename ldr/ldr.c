@@ -20,6 +20,7 @@
 bool g_stay_in_boot = false;
 
 volatile uint64_t system_time = 0;
+volatile uint32_t sys_time_u32 = 0;
 
 static volatile uint32_t boot_delay = BOOT_DELAY;
 static int32_t prev_systick = 0;
@@ -101,7 +102,7 @@ __attribute__((noreturn)) void main(void)
 		uint32_t time_diff_systick = (uint32_t)prof_mark(&prev_systick);
 
 		static uint32_t remain_systick_us_prev = 0, remain_systick_ms_prev = 0;
-		uint32_t diff_us = (time_diff_systick + remain_systick_us_prev) / (SYSTICK_IN_US);
+		// uint32_t diff_us = (time_diff_systick + remain_systick_us_prev) / (SYSTICK_IN_US);
 		remain_systick_us_prev = (time_diff_systick + remain_systick_us_prev) % SYSTICK_IN_US;
 
 		uint32_t diff_ms = (time_diff_systick + remain_systick_ms_prev) / (SYSTICK_IN_MS);
@@ -117,6 +118,7 @@ __attribute__((noreturn)) void main(void)
 		}
 
 		system_time += diff_ms;
+		sys_time_u32 += diff_ms;
 
 		boot_delay = boot_delay >= diff_ms ? boot_delay - diff_ms : 0;
 
@@ -131,12 +133,15 @@ __attribute__((noreturn)) void main(void)
 		}
 		else
 		{
-			GPIOE->ODR &= (uint32_t) ~(1 << 4);
+			GPIOE->ODR &= (uint32_t)~(1 << 4);
 		}
 
 		adc_track();
 	}
 }
+
+u32_t sys_now(void);
+u32_t sys_now(void) { return sys_time_u32; }
 
 void lwip_assert(const char *s)
 {

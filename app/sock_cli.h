@@ -8,7 +8,7 @@ typedef struct
 {
 	struct tcp_pcb *inst;
 	uint32_t timeout_cnt;
-	struct ip_addr DestIPaddr;
+	ip_addr_t DestIPaddr;
 	int port;
 } sock_cli_t;
 

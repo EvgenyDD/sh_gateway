@@ -13,7 +13,7 @@ extern bool g_stay_in_boot;
 static struct
 {
 	struct udp_pcb *udp_pcb_con; // The actual UDP port
-	struct ip_addr addr;
+	ip_addr_t addr;
 	uint16_t port;
 } con_udp = {NULL, {0}, 0};
 
@@ -50,11 +50,11 @@ static uint8_t prev_request[256] = {0};
 static int prev_request_len = 0;
 static uint16_t prev_port = 0;
 
-static void cb_udp_console(void *arg, struct udp_pcb *udp, struct pbuf *p, struct ip_addr *addr, uint16_t port)
+static void cb_udp_console(void *arg, struct udp_pcb *udp, struct pbuf *p, const ip_addr_t *addr, uint16_t port)
 {
 	g_stay_in_boot = true;
 
-	memcpy(&con_udp.addr, addr, sizeof(struct ip_addr));
+	memcpy(&con_udp.addr, addr, sizeof(ip_addr_t));
 	con_udp.port = port;
 	if(port != prev_port)
 	{

@@ -428,7 +428,7 @@ COMMON_WARN += -Wshadow
 COMMON_WARN += -Wsign-compare
 # COMMON_WARN += -Wsign-conversion
 COMMON_WARN += -Wstack-protector
-COMMON_WARN += -Wstrict-aliasing=1
+# COMMON_WARN += -Wstrict-aliasing=1
 COMMON_WARN += -Wstrict-overflow=2
 COMMON_WARN += -Wswitch-default
 # COMMON_WARN += -Wswitch-enum
