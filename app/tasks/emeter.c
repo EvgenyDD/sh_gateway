@@ -1,6 +1,7 @@
 #include "emeter.h"
 #include "adc.h"
 #include "debounce.h"
+#include "fram.h"
 #include <string.h>
 
 #define PWR_SCALE 1600.0f // imp/kWh
@@ -30,8 +31,9 @@ static debounce_t deb_light_on = {0};
 static uint16_t baseline_level = 4095;
 static bool light_enabled = false;
 
-void emeter_init(void)
+void emeter_init(uint32_t pulse_acc_old)
 {
+	pulse_acc = pulse_acc_old;
 	memset(&deb_light_on, 0, sizeof(deb_light_on));
 	deb_light_on.cfg_max_thrs = L_TRIG_THRS;
 	deb_light_on.cfg_press_thrs = L_TRIG_SET_THRS;
@@ -103,6 +105,11 @@ void emeter_poll(uint32_t diff_ms)
 	if(prev_out_st == false && out_st)
 	{
 		pulse_acc++;
+		{
+			uint32_t field_addr = 0 + offsetof(fram_entries_t, emeter_cnt);
+			fram_write(field_addr, (const uint8_t *)&pulse_acc, sizeof(fram_data.emeter_cnt));
+		}
+
 		power_now = em_pulse_tim == 0 ? 0 : 1 / (PWR_SCALE * (float)em_pulse_tim * 0.001f / 3600.0f);
 		em_pulse_tim = 0;
 	}

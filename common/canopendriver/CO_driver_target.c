@@ -34,7 +34,8 @@ CO_ReturnError_t CO_CANmodule_init(
 	CANmodule->txSize = txSize;
 	CANmodule->CANerrorStatus = 0;
 	CANmodule->CANnormal = false;
-	CANmodule->useCANrxFilters = (rxSize <= CAN_FILT_NUM) ? true : false;
+	// CANmodule->useCANrxFilters = (rxSize <= CAN_FILT_NUM) ? true : false;
+	CANmodule->useCANrxFilters = false;
 	CANmodule->bufferInhibitFlag = false;
 	CANmodule->firstCANtxMessage = true;
 	CANmodule->CANtxCount = 0U;
@@ -234,18 +235,22 @@ void CO_CANmodule_process(CO_CANmodule_t *CANmodule)
 {
 	CAN_TypeDef *dev = (CAN_TypeDef *)CANmodule->CANptr;
 
-	uint16_t overflow = can_drv_check_bus_off(dev) ? 1 : 0;
-	uint16_t rxErrors = can_drv_get_rx_error_counter(dev);
-	uint16_t txErrors = can_drv_get_tx_error_counter(dev);
+	CANmodule->diag.is_bus_off = can_drv_check_bus_off(dev) ? 1 : 0;
+	CANmodule->diag.rx_err_cnt = can_drv_get_rx_error_counter(dev);
+	CANmodule->diag.tx_err_cnt = can_drv_get_tx_error_counter(dev);
 
-	uint32_t err = ((uint32_t)txErrors << 16) | ((uint32_t)rxErrors << 8) | overflow;
+	if(CANmodule->diag.is_bus_off) CANmodule->diag.bus_off_err_cnt++;
+
+	uint32_t err = ((uint32_t)CANmodule->diag.tx_err_cnt << 16) |
+				   ((uint32_t)CANmodule->diag.rx_err_cnt << 8) |
+				   (uint32_t)CANmodule->diag.is_bus_off;
 
 	if(CANmodule->errOld != err)
 	{
 		uint16_t status = CANmodule->CANerrorStatus;
 		CANmodule->errOld = err;
 
-		if(txErrors >= 256U)
+		if(CANmodule->diag.tx_err_cnt == 0xFF)
 		{
 			status |= CO_CAN_ERRTX_BUS_OFF;
 		}
@@ -255,35 +260,29 @@ void CO_CANmodule_process(CO_CANmodule_t *CANmodule)
 			status &= 0xFFFF ^ (CO_CAN_ERRTX_BUS_OFF |
 								CO_CAN_ERRRX_WARNING | CO_CAN_ERRRX_PASSIVE |
 								CO_CAN_ERRTX_WARNING | CO_CAN_ERRTX_PASSIVE);
-			if(rxErrors >= 128)
+			if(CANmodule->diag.rx_err_cnt >= 128)
 			{
 				status |= CO_CAN_ERRRX_WARNING | CO_CAN_ERRRX_PASSIVE;
 			}
-			else if(rxErrors >= 96)
+			else if(CANmodule->diag.rx_err_cnt >= 96)
 			{
 				status |= CO_CAN_ERRRX_WARNING;
 			}
 
-			if(txErrors >= 128)
+			if(CANmodule->diag.tx_err_cnt >= 128)
 			{
 				status |= CO_CAN_ERRTX_WARNING | CO_CAN_ERRTX_PASSIVE;
 			}
-			else if(rxErrors >= 96)
+			else if(CANmodule->diag.rx_err_cnt >= 96)
 			{
 				status |= CO_CAN_ERRTX_WARNING;
 			}
 
 			/* if not tx passive clear also overflow */
-			if((status & CO_CAN_ERRTX_PASSIVE) == 0)
-			{
-				status &= 0xFFFF ^ CO_CAN_ERRTX_OVERFLOW;
-			}
+			if((status & CO_CAN_ERRTX_PASSIVE) == 0) status &= 0xFFFF ^ CO_CAN_ERRTX_OVERFLOW;
 		}
 
-		if(overflow != 0)
-		{
-			status |= CO_CAN_ERRRX_OVERFLOW;
-		}
+		if(CANmodule->diag.is_bus_off) status |= CO_CAN_ERRRX_OVERFLOW;
 
 		CANmodule->CANerrorStatus = status;
 	}
@@ -296,18 +295,26 @@ void CO_CANinterrupt(CO_CANmodule_t *CANmodule)
 
 	if(can_drv_is_rx_pending(dev)) // receive interrupt
 	{
-
 		bool_t msgMatched = false;
 
 		if(can_drv_check_rx_overrun(dev)) return;
 
 		int index = can_drv_get_rx_filter_index(dev); /* get index of the received message here. Or something similar */
 
+		can_msg_t rcv_msg2 = {.DLC = can_drv_get_rx_dlc(dev), .ts = 0};
+		uint32_t rir = can_drv_get_rx_ident(dev);
+		rcv_msg2.RTR = (rir & (1 << 1)) ? 1 : 0;
+		rcv_msg2.IDE = (rir & (1 << 2)) ? 1 : 0;
+		rcv_msg2.IDE ? (rcv_msg2.id.ext = (rir >> 3)) : (rcv_msg2.id.std = (rir >> 21));
+
 		CO_CANrx_t rcv_msg = {
 			.ident = can_drv_get_rx_ident(dev),
 			.DLC = can_drv_get_rx_dlc(dev)};
 		can_drv_get_rx_data(dev, rcv_msg.data);
+		can_drv_get_rx_data(dev, rcv_msg2.data);
 		can_drv_release_rx_message(dev);
+
+		can_drv_rxed(&rcv_msg2);
 
 		if(CANmodule->useCANrxFilters)
 		{

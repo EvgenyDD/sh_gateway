@@ -2,6 +2,7 @@
 #include "CANopen.h"
 #include "crc.h"
 #include "fw_header.h"
+#include "pdo_router.h"
 #include "platform.h"
 #include "sdo.h"
 
@@ -81,6 +82,7 @@ int cb_nd_wr_preldr(uint32_t addr, const uint8_t *data, uint32_t size) { return 
 
 int cb_nd_rd(uint32_t addr, uint8_t *data, uint32_t size_buffer, uint32_t *size_read)
 {
+	pdo_switch_en_global(false);
 	if(size_buffer > BLOCK_SZ) return SDO_FL_ERR_SIZE_BIGGER_THAN_BUFFER;
 
 	uint32_t cmd;
@@ -101,6 +103,7 @@ int cb_nd_rd(uint32_t addr, uint8_t *data, uint32_t size_buffer, uint32_t *size_
 
 int cb_nd_wr(uint32_t addr, const uint8_t *data, uint32_t size)
 {
+	pdo_switch_en_global(false);
 	uint32_t cmd;
 	CO_SDO_abortCode_t sts;
 

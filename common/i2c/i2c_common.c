@@ -1,6 +1,8 @@
 #include "i2c_common.h"
 #include "stm32f4xx.h"
 
+extern bool g_cfg_i2c_remap;
+
 #define TIMEOUT 0xFFF
 #define TIMEOUT_SHORT 100
 
@@ -84,10 +86,10 @@ void i2c_init(void)
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_I2C1, ENABLE);
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
 
-	GPIO_PinAFConfig(GPIOB, GPIO_PinSource6, GPIO_AF_I2C1);
+	GPIO_PinAFConfig(GPIOB, g_cfg_i2c_remap ? GPIO_PinSource8 : GPIO_PinSource6, GPIO_AF_I2C1);
 	GPIO_PinAFConfig(GPIOB, GPIO_PinSource7, GPIO_AF_I2C1);
 
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_6 | GPIO_Pin_7;
+	GPIO_InitStructure.GPIO_Pin = (g_cfg_i2c_remap ? GPIO_Pin_8 : GPIO_Pin_6) | GPIO_Pin_7;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
 	GPIO_InitStructure.GPIO_OType = GPIO_OType_OD;
@@ -137,7 +139,7 @@ static int check_busy_(void)
 			i2c_err_restarts++;
 			I2C_Cmd(I2C1, DISABLE);
 			GPIO_InitTypeDef GPIO_InitStructure;
-			GPIO_InitStructure.GPIO_Pin = GPIO_Pin_6;
+			GPIO_InitStructure.GPIO_Pin = g_cfg_i2c_remap ? GPIO_Pin_8 : GPIO_Pin_6;
 			GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
 			GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
 			GPIO_InitStructure.GPIO_OType = GPIO_OType_OD;
@@ -145,10 +147,10 @@ static int check_busy_(void)
 			GPIO_Init(GPIOB, &GPIO_InitStructure);
 			for(uint32_t i = 0; i < 9; i++)
 			{
-				GPIOB->BSRRH = 1 << 6;
+				GPIOB->BSRRH = 1 << (g_cfg_i2c_remap ? 8 : 6);
 				for(volatile uint32_t j = 0; j < 128; j++)
 					;
-				GPIOB->BSRRL = 1 << 6;
+				GPIOB->BSRRL = 1 << (g_cfg_i2c_remap ? 8 : 6);
 				for(volatile uint32_t j = 0; j < 128; j++)
 					;
 			}

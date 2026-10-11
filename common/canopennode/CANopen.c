@@ -761,6 +761,57 @@ void CO_delete(CO_t *co) {
 CO_t *CO_new(CO_config_t *config, uint32_t *heapMemoryUsed) {
     (void)config; (void)heapMemoryUsed;
 
+#define MAKE_NULL(X) memset(&X, 0, sizeof(X));
+    MAKE_NULL(COO);
+    MAKE_NULL(COO_CANmodule);
+    MAKE_NULL(COO_CANmodule_rxArray);
+    MAKE_NULL(COO_CANmodule_txArray);
+    MAKE_NULL(COO_NMT);
+
+#if (CO_CONFIG_HB_CONS) & CO_CONFIG_HB_CONS_ENABLE
+    MAKE_NULL(COO_HBcons);
+    MAKE_NULL(COO_HBconsMonitoredNodes);
+#endif
+    MAKE_NULL(COO_EM);
+#if (CO_CONFIG_EM) & (CO_CONFIG_EM_PRODUCER | CO_CONFIG_EM_HISTORY)
+    MAKE_NULL(COO_EM_FIFO);
+#endif
+    MAKE_NULL(COO_SDOserver);
+#if (CO_CONFIG_SDO_CLI) & CO_CONFIG_SDO_CLI_ENABLE
+    MAKE_NULL(COO_SDOclient);
+#endif
+#if (CO_CONFIG_TIME) & CO_CONFIG_TIME_ENABLE
+    MAKE_NULL(COO_TIME);
+#endif
+#if (CO_CONFIG_SYNC) & CO_CONFIG_SYNC_ENABLE
+    MAKE_NULL(COO_SYNC);
+#endif
+#if (CO_CONFIG_PDO) & CO_CONFIG_RPDO_ENABLE
+    MAKE_NULL(COO_RPDO);
+#endif
+#if (CO_CONFIG_PDO) & CO_CONFIG_TPDO_ENABLE
+    MAKE_NULL(COO_TPDO);
+#endif
+#if (CO_CONFIG_LEDS) & CO_CONFIG_LEDS_ENABLE
+    MAKE_NULL(COO_LEDs);
+#endif
+#if (CO_CONFIG_GFC) & CO_CONFIG_GFC_ENABLE
+    MAKE_NULL(COO_GFC);
+#endif
+#if (CO_CONFIG_SRDO) & CO_CONFIG_SRDO_ENABLE
+    MAKE_NULL(COO_SRDOGuard);
+    MAKE_NULL(COO_SRDO);
+#endif
+#if (CO_CONFIG_LSS) & CO_CONFIG_LSS_SLAVE
+    MAKE_NULL(COO_LSSslave);
+#endif
+#if (CO_CONFIG_LSS) & CO_CONFIG_LSS_MASTER
+    MAKE_NULL(COO_LSSmaster);
+#endif
+#if (CO_CONFIG_GTW) & CO_CONFIG_GTW_ASCII
+    MAKE_NULL(COO_gtwa);
+#endif
+
     CO_t *co = &COO;
 
     co->CANmodule = &COO_CANmodule;

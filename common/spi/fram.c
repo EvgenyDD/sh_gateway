@@ -3,6 +3,8 @@
 #include "stm32f4xx.h"
 #include <string.h>
 
+// FM25V10-GTR
+
 #define CS_H GPIOD->BSRRL = GPIO_Pin_8
 #define CS_L GPIOD->BSRRH = GPIO_Pin_8
 
@@ -52,31 +54,12 @@ int fram_init(void)
 
 void fram_data_read(void)
 {
-	// uint8_t data_rx[128];
-	// for(uint32_t i = 0; i * sizeof(data_rx) < sizeof(fram_data); i++)
-	// {
-	// 	fram_read(i * sizeof(data_rx), data_rx, sizeof(data_rx));
-	// 	memcpy(&(((uint8_t *)&fram_data)[i * sizeof(data_rx)]),
-	// 		   data_rx,
-	// 		   (i + 1) * sizeof(data_rx) > sizeof(fram_data)
-	// 			   ? (i + 1) * sizeof(data_rx) - sizeof(fram_data)
-	// 			   : sizeof(data_rx));
-	// }
+	fram_read(0, (uint8_t *)&fram_data, sizeof(fram_data));
 }
 
 void fram_data_write(void)
 {
-	uint8_t data_tx[128];
-	for(uint32_t i = 0; i * sizeof(data_tx) < sizeof(fram_data); i++)
-	{
-		size_t q = (i + 1) * sizeof(data_tx) > sizeof(fram_data)
-					   ? (i + 1) * sizeof(data_tx) - sizeof(fram_data)
-					   : sizeof(data_tx);
-		memcpy(data_tx,
-			   &(((uint8_t *)&fram_data)[i * sizeof(data_tx)]),
-			   q);
-		fram_write(i * sizeof(data_tx), data_tx, q);
-	}
+	fram_write(0, (uint8_t *)&fram_data, sizeof(fram_data));
 }
 
 uint8_t fram_read_sts(void)
@@ -110,51 +93,40 @@ int fram_check_sn(void)
 
 int fram_read(uint32_t addr, uint8_t *data, uint32_t size)
 {
-	if(addr + size >= FRAM_SIZE) return FRAM_ERR_ADDR_OVF;
+	if(addr + size > FRAM_SIZE) return FRAM_ERR_ADDR_OVF;
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wvla"
-	uint8_t data_tx[4 + size], data_rx[4 + size];
-#pragma GCC diagnostic pop
+	uint8_t cmd_buf[4];
+	cmd_buf[0] = FRAM_CMD_READ;
+	cmd_buf[1] = (addr >> 16) & 0xFF;
+	cmd_buf[2] = (addr >> 8) & 0xFF;
+	cmd_buf[3] = addr & 0xFF;
 
-	data_tx[0] = FRAM_CMD_READ;
-	data_tx[1] = (addr >> 16) & 0xFF;
-	data_tx[2] = (addr >> 8) & 0xFF;
-	data_tx[3] = addr & 0xFF;
 	CS_L;
-	spi_trx(data_tx, data_rx, 4 + size);
+	spi_transmit(cmd_buf, 4);
+	spi_receive(data, size);
 	CS_H;
-	memcpy(data, &data_rx[4], size);
 
 	return 0;
 }
 
-uint8_t stss;
-
 int fram_write(uint32_t addr, const uint8_t *data, uint32_t size)
 {
-	if(addr + size >= FRAM_SIZE) return FRAM_ERR_ADDR_OVF;
+	if(addr + size > FRAM_SIZE) return FRAM_ERR_ADDR_OVF;
 
-// disable write protection
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wvla"
-	uint8_t data_tx[4 + size], data_rx[4 + size];
-#pragma GCC diagnostic pop
-
-	data_tx[0] = FRAM_CMD_WR_EN;
 	CS_L;
-	spi_trx(data_tx, data_rx, 1);
+	uint8_t cmd_en = FRAM_CMD_WR_EN;
+	spi_transmit(&cmd_en, 1);
 	CS_H;
 
-	stss = fram_read_sts();
+	uint8_t cmd_buf[4];
+	cmd_buf[0] = FRAM_CMD_WRITE;
+	cmd_buf[1] = (addr >> 16) & 0xFF;
+	cmd_buf[2] = (addr >> 8) & 0xFF;
+	cmd_buf[3] = addr & 0xFF;
 
-	data_tx[0] = FRAM_CMD_WRITE;
-	data_tx[1] = (addr >> 16) & 0xFF;
-	data_tx[2] = (addr >> 8) & 0xFF;
-	data_tx[3] = addr & 0xFF;
-	memcpy(&data_tx[4], data, size);
 	CS_L;
-	spi_trx(data_tx, data_rx, 4 + size);
+	spi_transmit(cmd_buf, 4);
+	spi_transmit(data, size);
 	CS_H;
 
 	return 0;

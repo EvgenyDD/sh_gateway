@@ -1,3 +1,30 @@
+#include <math.h>
+
+static const char *nmt_state2str(CO_NMT_internalState_t state)
+{
+	switch(state)
+	{
+	case CO_NMT_INITIALIZING: return "INIT";
+	case CO_NMT_PRE_OPERATIONAL: return "PREOP";
+	case CO_NMT_OPERATIONAL: return "OP";
+	case CO_NMT_STOPPED: return "STOP";
+	default:
+	case CO_NMT_UNKNOWN: return "?";
+	}
+}
+
+static const char *hb_state2str(CO_HBconsumer_state_t state)
+{
+	switch(state)
+	{
+	default:
+	case CO_HBconsumer_UNCONFIGURED: return "-"; /**< Consumer entry inactive */
+	case CO_HBconsumer_UNKNOWN: return "?";		 /**< Consumer enabled, but no heartbeat received yet */
+	case CO_HBconsumer_ACTIVE: return "OK";		 /**< Heartbeat received within set time */
+	case CO_HBconsumer_TIMEOUT: return "TO";	 /**< No heatbeat received for set time */
+	}
+}
+
 static void can_emcy_cb(const char *arg, int l, int *ret)
 {
 	co_emcy_print_hist();
@@ -15,7 +42,12 @@ static void can_hb_cb(const char *arg, int l, int *ret)
 	for(uint32_t i = 0; i < CO->HBcons->numberOfMonitoredNodes; i++)
 	{
 		if(CO->HBcons->monitoredNodes[i].HBstate != CO_HBconsumer_UNKNOWN)
-			_PRINTF("\t%d -> %d\n", CO->HBcons->monitoredNodes[i].nodeId, CO->HBcons->monitoredNodes[i].HBstate);
+			_PRINTF("\t%d: HB %d [%s] | NMT %d [%s]\n",
+					CO->HBcons->monitoredNodes[i].nodeId,
+					CO->HBcons->monitoredNodes[i].HBstate,
+					hb_state2str(CO->HBcons->monitoredNodes[i].HBstate),
+					CO->HBcons->monitoredNodes[i].NMTstate,
+					nmt_state2str(CO->HBcons->monitoredNodes[i].NMTstate));
 	}
 }
 
@@ -58,6 +90,16 @@ static void can_fw_cb(const char *arg, int l, int *ret)
 
 			_PRINTF("Node %d UID: x%08lx.x%08lx.x%08lx %s |", id, uid[0], uid[1], uid[2], str);
 
+			uint32_t dev_type = 0;
+			rd = sizeof(dev_type);
+			sts = read_SDO(CO->SDOclient, id, 0x1000, 0, (uint8_t *)&dev_type, sizeof(dev_type), &rd, 800);
+			if(sts != 0)
+			{
+				_PRINTF("SDO read %d abort: x%x\n", id, sts);
+				return;
+			}
+			_PRINTF(" x%lx |", dev_type);
+
 			rd = sizeof(str);
 			memset(str, 0, sizeof(str));
 			sts = read_SDO(CO->SDOclient, id, 0x1008, 0, str, sizeof(str), &rd, 800);
@@ -96,46 +138,182 @@ static void sdo_rd_cb(const char *arg, int l, int *ret)
 {
 	unsigned int id = 0, idx = 0, subidx = 0;
 	int n = sscanf(arg, "%u %x %u", &id, &idx, &subidx);
-	if(n != 3)
+	if(n != 3 && n != 2)
 	{
-		_PRINTF("Wrong format\n");
+		_PRINTF("Wrong format! d:id hex:idx [d:sub]\n");
 		return;
 	}
 
-	_PRINTF("Read %d node x%x:%d\n", id, idx, subidx);
+	uint8_t start_sub = 0;
+	uint8_t end_sub = 0;
 
-	size_t rd = 256;
-	uint8_t data[256];
-	CO_SDO_abortCode_t sts = read_SDO(CO->SDOclient, id, idx, subidx, data, sizeof(data), &rd, 3000);
-	_PRINTF("%d -> %d | ", sts, rd);
-	for(uint32_t i = 0; i < rd; i++)
+	if(n == 2)
 	{
-		_PRINTF("x%x ", data[i]);
+		size_t rd = 256;
+		uint8_t data[256];
+		CO_SDO_abortCode_t sts = read_SDO(CO->SDOclient, id, idx, 0, data, sizeof(data), &rd, 3000);
+
+		if(sts != 0 || rd == 0)
+		{
+			_PRINTF("Failed to read sub 0 count. Status: x%x\n", sts);
+			return;
+		}
+
+		uint32_t total_subindexes = data[0];
+
+		// _PRINTF("Object x%x: %u sub\n", idx, total_subindexes);
+		start_sub = 1;
+		end_sub = total_subindexes;
 	}
-	_PRINTF("\n");
+	else
+	{
+		start_sub = subidx;
+		end_sub = subidx;
+	}
+
+	for(uint8_t current_sub = start_sub; current_sub <= end_sub; current_sub++)
+	{
+		_PRINTF("Read %d node x%x:%d", id, idx, current_sub);
+
+		size_t rd = 256;
+		uint8_t data[256];
+		CO_SDO_abortCode_t sts = read_SDO(CO->SDOclient, id, idx, current_sub, data, sizeof(data), &rd, 3000);
+		_PRINTF(" | Status: x%x (%zu): ", sts, rd);
+
+		for(uint32_t i = 0; i < rd * (sts ? 0 : 1); i++)
+		{
+			_PRINTF("%02x ", data[i]);
+		}
+		if(sts == 0)
+		{
+			if(rd == 1)
+			{
+				int8_t _i8;
+				uint8_t _u8;
+				memcpy(&_i8, data, 1);
+				memcpy(&_u8, data, 1);
+				_PRINTF(" | (u8:%u, i8:%d)", _u8, _i8);
+			}
+			else if(rd == 2)
+			{
+				int16_t _i16;
+				uint16_t _u16;
+				memcpy(&_i16, data, 2);
+				memcpy(&_u16, data, 2);
+				_PRINTF(" | (u16:%u, i16:%d)", _u16, _i16);
+			}
+			else if(rd == 4)
+			{
+				int32_t _i32;
+				uint32_t _u32;
+				float f;
+				memcpy(&_i32, data, 4);
+				memcpy(&_u32, data, 4);
+				memcpy(&f, data, 4);
+
+				// Печатаем целые числа
+				_PRINTF(" | (u32:%lu, i32:%ld", _u32, _i32);
+
+				// Проверяем float на валидность (не NaN и не Inf)
+				if(isfinite(f))
+				{
+					_PRINTF(", float:%f)", f);
+				}
+				else
+				{
+					_PRINTF(")");
+				}
+			}
+			_PRINTF("\n");
+		}
+	}
 }
 
 static void sdo_wr_cb(const char *arg, int l, int *ret)
 {
-	_PRINTF("not implemented\n");
+	unsigned int id = 0, idx = 0, subidx = 0;
+	int offset = 0;
+	int read_bytes = 0;
+	unsigned char data[32];
+	size_t data_len;
+	int n = sscanf(arg, "%u %x %u%n", &id, &idx, &subidx, &read_bytes);
+
+	if(n < 3)
+	{
+		_PRINTF("Wrong format! d:id hex:idx d:sub hex:data...\n");
+		return;
+	}
+	offset += read_bytes;
+	data_len = 0;
+
+	while(data_len < 32)
+	{
+		unsigned int byte_val;
+
+		int res = sscanf(arg + offset, "%x%n", &byte_val, &read_bytes);
+
+		if(res != 1) break;
+
+		data[data_len++] = (unsigned char)byte_val;
+		offset += read_bytes;
+	}
+
+	_PRINTF("Writing %d: x%x:%d (%d): ", id, idx, subidx, data_len);
+	for(uint32_t i = 0; i < data_len; i++)
+	{
+		_PRINTF("%x ", data[i]);
+	}
+	CO_SDO_abortCode_t sts = write_SDO(CO->SDOclient, id, idx, subidx, data, data_len, 3000);
+	_PRINTF("| Status: x%x\n", sts);
 }
 
 static void can_role_cb(const char *arg, int l, int *ret)
 {
-	unsigned int id = 0, new_role;
-	int n = sscanf(arg, "%u %x", &id, &new_role);
-	if(n != 2)
+	uint8_t prod_id[16] = {0};
+	unsigned int id = 0;
+	char str[32];
+	int n = sscanf(arg, "%u %s", &id, str);
+
+	if(n <= 0) // print all roles
 	{
-		_PRINTF("Wrong format!\n");
-		return;
+		for(uint32_t nd = 0; nd < CO->HBcons->numberOfMonitoredNodes; nd++)
+		{
+			if(CO->HBcons->monitoredNodes[nd].HBstate != CO_HBconsumer_UNKNOWN)
+			{
+				id = CO->HBcons->monitoredNodes[nd].nodeId;
+				size_t rd = sizeof(uint32_t);
+				CO_SDO_abortCode_t sts = read_SDO(CO->SDOclient, id, 0x1F58, 0, prod_id, sizeof(prod_id), &rd, 800);
+				if(sts != 0)
+				{
+					_PRINTF("SDO read %d abort: x%x\n", id, sts);
+					return;
+				}
+				_PRINTF("#%d prod_id: %.*s\n", id, rd, prod_id);
+			}
+		}
 	}
-	CO_SDO_abortCode_t sts = write_SDO(CO->SDOclient, id, 0x1000, 0, (uint8_t *)&new_role, sizeof(uint32_t), 800);
-	if(sts != 0)
+	if(n == 2)
 	{
-		_PRINTF("SDO write %d abort: x%x\n", id, sts);
-		return;
+		strncpy((char *)prod_id, str, sizeof(prod_id));
+		CO_SDO_abortCode_t sts = write_SDO(CO->SDOclient, id, 0x1f58, 0, prod_id, sizeof(prod_id), 800);
+		if(sts != 0)
+		{
+			_PRINTF("SDO write %d abort: x%x\n", id, sts);
+			return;
+		}
+		n = 1;
 	}
-	_PRINTF("New %d role x%x OK\n", id, new_role);
+	if(n == 1)
+	{
+		size_t rd = sizeof(uint32_t);
+		CO_SDO_abortCode_t sts = read_SDO(CO->SDOclient, id, 0x1F58, 0, prod_id, sizeof(prod_id), &rd, 800);
+		if(sts != 0)
+		{
+			_PRINTF("SDO read %d abort: x%x\n", id, sts);
+			return;
+		}
+		_PRINTF("Current (#%d) prod_id: %.*s\n", id, rd, prod_id);
+	}
 }
 
 static void can_save_cb(const char *arg, int l, int *ret)
@@ -280,7 +458,7 @@ static void can_baud_cb(const char *arg, int l, int *ret)
 	int n = sscanf(arg, "%u", &baud);
 	if(n != 1 || baud <= 0)
 	{
-		_PRINTF("Wrong format, current baud: %d\n", pending_can_baud * 1000);
+		_PRINTF("Wrong format, current baud: %d\n", g_cfg_pending_can_baud * 1000);
 		return;
 	}
 
@@ -327,7 +505,7 @@ static void can_baud_cb(const char *arg, int l, int *ret)
 		}
 	}
 
-	pending_can_baud = baud;
+	g_cfg_pending_can_baud = baud;
 	_PRINTF("activate self ok\n");
 
 	// Now all the nodes are configured, let's apply new baud

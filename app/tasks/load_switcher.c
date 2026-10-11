@@ -44,6 +44,8 @@ void load_switcher_off(void)
 	enabled = false;
 }
 
+bool load_switcher_is_on(void) { return enabled; }
+
 int load_switcher_poll(uint32_t diff_ms)
 {
 	int ret_sts = 0;

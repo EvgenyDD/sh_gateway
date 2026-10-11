@@ -7,7 +7,7 @@
 #define NUM_CH 8
 #define CURRENT_FAULT_A 1.0f
 
-extern uint32_t g_poe_sw_chnl_bits;
+extern uint32_t g_cfg_poe_sw_chnl_bits;
 
 static struct
 {
@@ -27,7 +27,7 @@ void poe_switcher_init(void)
 
 	for(uint32_t i = 0; i < NUM_CH; i++)
 	{
-		if(g_poe_sw_chnl_bits & (1 << i))
+		if(g_cfg_poe_sw_chnl_bits & (1 << i))
 		{
 			if(pins_ctrl[i] && port_ctrl[i])
 			{
@@ -64,7 +64,7 @@ void poe_switcher_poll(uint32_t diff_ms)
 {
 	for(uint32_t i = 0; i < NUM_CH; i++)
 	{
-		if(g_poe_sw_chnl_bits & (1 << i))
+		if(g_cfg_poe_sw_chnl_bits & (1 << i))
 		{
 			if(fabsf(adc_val.poe_sns[adc_idx[i]]) >= CURRENT_FAULT_A) poe_switcher_off(i);
 		}

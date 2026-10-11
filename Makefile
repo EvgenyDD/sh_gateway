@@ -39,7 +39,7 @@ PPDEFS += CO_CONFIG_GFC=0
 PPDEFS += CO_CONFIG_GTW="CO_CONFIG_GTW_ASCII|CO_CONFIG_GTW_ASCII_SDO|CO_CONFIG_GTW_ASCII_NMT|CO_CONFIG_GTW_ASCII_LSS"
 PPDEFS += CO_CONFIG_GTWA_COMM_BUF_SIZE=2000
 PPDEFS += CO_CONFIG_GTW_BLOCK_DL_LOOP=3
-PPDEFS += CO_CONFIG_HB_CONS="CO_CONFIG_HB_CONS_ENABLE|CO_CONFIG_FLAG_TIMERNEXT|CO_CONFIG_FLAG_OD_DYNAMIC"
+PPDEFS += CO_CONFIG_HB_CONS="CO_CONFIG_HB_CONS_ENABLE|CO_CONFIG_FLAG_TIMERNEXT|CO_CONFIG_FLAG_OD_DYNAMIC|CO_CONFIG_HB_CONS_CALLBACK_CHANGE"
 #PPDEFS += CO_CONFIG_LEDS=CO_CONFIG_LEDS_ENABLE
 PPDEFS += CO_CONFIG_LEDS=0
 PPDEFS += CO_CONFIG_LSS="CO_CONFIG_LSS_MASTER|CO_CONFIG_LSS_SLAVE|CO_CONFIG_LSS_SLAVE_FASTSCAN_DIRECT_RESPOND"
@@ -55,6 +55,8 @@ PPDEFS += CO_CONFIG_TIME="CO_CONFIG_TIME_ENABLE|CO_CONFIG_TIME_PRODUCER|CO_CONFI
 PPDEFS += CO_CONFIG_TRACE=0
 
 INCDIR += app
+INCDIR += app/comm
+INCDIR += app/tasks
 INCDIR += common
 INCDIR += common/adc
 INCDIR += common/CMSIS
@@ -76,26 +78,37 @@ INCDIR += common/spi
 INCDIR += common/STM32F4x7_ETH_Driver/inc
 INCDIR += common/STM32F4xx_StdPeriph_Driver/inc
 
-SOURCES += $(call rwildcard, app, *.c *.S *.s)
-SOURCES += $(call rwildcard, common/adc, *.c *.S *.s)
-SOURCES += $(call rwildcard, common/canopendriver, *.c *.S *.s)
-SOURCES += $(call rwildcard, common/canopennode, *.c *.S *.s)
-SOURCES += $(call rwildcard, common/CMSIS, *.c *.S *.s)
-SOURCES += $(call rwildcard, common/config_system, *.c *.S *.s)
-SOURCES += $(call rwildcard, common/crc, *.c *.S *.s)
-SOURCES += $(call rwildcard, common/eth, *.c *.S *.s)
-SOURCES += $(call rwildcard, common/eth_con, *.c *.S *.s)
-SOURCES += $(call rwildcard, common/fw_header, *.c *.S *.s)
-SOURCES += $(call rwildcard, common/i2c, *.c *.S *.s)
-SOURCES += $(call rwildcard, common/logger, *.c *.S *.s)
-SOURCES += $(call rwildcard, common/spi, *.c *.S *.s)
-SOURCES += $(call rwildcard, common/STM32F4x7_ETH_Driver, *.c *.S *.s)
-SOURCES += $(call rwildcard, common/STM32F4xx_StdPeriph_Driver, *.c *.S *.s)
+SOURCES += common/CMSIS/startup_stm32f407xx.s
+SOURCES += $(wildcard app/*.c)
+SOURCES += $(wildcard app/comm/*.c)
+SOURCES += $(wildcard app/tasks/*.c)
 SOURCES += $(wildcard common/*.c)
+SOURCES += $(wildcard common/adc/*.c)
+SOURCES += $(wildcard common/canopendriver/*.c)
+SOURCES += $(wildcard common/config_system/*.c)
+SOURCES += $(wildcard common/crc/*.c)
+SOURCES += $(wildcard common/eth/*.c)
+SOURCES += $(wildcard common/eth_con/*.c)
+SOURCES += $(wildcard common/fw_header/*.c)
+SOURCES += $(wildcard common/i2c/*.c)
+SOURCES += $(wildcard common/logger/*.c)
+SOURCES += $(wildcard common/spi/*.c)
+SOURCES += $(wildcard common/STM32F4x7_ETH_Driver/src/*.c)
+SOURCES += $(wildcard common/STM32F4xx_StdPeriph_Driver/src/*.c)
+
+SOURCES += $(wildcard common/canopennode/*.c)
+SOURCES += $(wildcard common/canopennode/301/*.c)
+SOURCES += $(wildcard common/canopennode/303/*.c)
+SOURCES += $(wildcard common/canopennode/304/*.c)
+SOURCES += $(wildcard common/canopennode/305/*.c)
+SOURCES += $(wildcard common/canopennode/309/*.c)
+SOURCES += $(wildcard common/canopennode/extra/*.c)
+SOURCES += $(wildcard common/canopennode/storage/*.c)
 
 SOURCES += $(wildcard common/lwip/port/*.c)
 SOURCES += $(wildcard common/lwip/port/STM32F4x7/*.c)
 SOURCES += $(wildcard common/lwip/src/api/*.c)
+SOURCES += $(wildcard common/lwip/src/apps/mqtt/mqtt.c)
 SOURCES += $(wildcard common/lwip/src/core/*.c)
 SOURCES += $(wildcard common/lwip/src/core/ipv4/*.c)
 SOURCES += $(wildcard common/lwip/src/core/snmp/*.c)

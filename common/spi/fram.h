@@ -15,6 +15,7 @@ enum
 typedef struct
 {
 	uint32_t power_on_cnt;
+	uint32_t emeter_cnt;
 	uint32_t logger_start;
 	uint32_t logger_end;
 } fram_entries_t;

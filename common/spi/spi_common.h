@@ -5,5 +5,7 @@
 
 void spi_common_init(void);
 void spi_trx(const uint8_t *data_tx, uint8_t *data_rx, uint32_t sz);
+void spi_transmit(const uint8_t *data, uint32_t sz);
+void spi_receive(uint8_t *data, uint32_t sz);
 
 #endif // SPI_COMMON_H__

@@ -528,7 +528,13 @@ void CO_GTWA_process(CO_GTWA_t *gtwa,
                      uint32_t timeDifference_us,
                      uint32_t *timerNext_us);
 
+#if (CO_CONFIG_GTW) & CO_CONFIG_GTW_ASCII_SDO
+extern const CO_GTWA_dataType_t dataTypes[20];
+const CO_GTWA_dataType_t *CO_GTWA_getDataType(char *token, bool_t *err, uint8_t *ptr_type);
+#endif
+
 /** @} */ /* CO_CANopen_309_3 */
+
 
 #ifdef __cplusplus
 }

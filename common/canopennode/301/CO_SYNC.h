@@ -253,6 +253,8 @@ CO_SYNC_status_t CO_SYNC_process(CO_SYNC_t *SYNC,
 
 /** @} */ /* CO_SYNC */
 
+void SYNC_write_1005(CO_SYNC_t *SYNC, uint32_t v);
+
 #ifdef __cplusplus
 }
 #endif /*__cplusplus*/

@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-void emeter_init(void);
+void emeter_init(uint32_t pulse_acc_old);
 void emeter_poll(uint32_t diff_ms);
 
 uint32_t emeter_get_cnt(void);

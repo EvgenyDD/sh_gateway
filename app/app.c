@@ -1,3 +1,4 @@
+#include "app.h"
 #include "CANopen.h"
 #include "CO_driver_app.h"
 #include "CO_driver_storage.h"
@@ -8,7 +9,6 @@
 #include "config_system.h"
 #include "crc.h"
 #include "emeter.h"
-#include "error.h"
 #include "eth/netconf.h"
 #include "eth/tftp_server.h"
 #include "eth_con/console_udp.h"
@@ -20,46 +20,56 @@
 #include "logger.h"
 #include "lss_cb.h"
 #include "mains_sense.h"
+#include "mqtt_app.h"
 #include "pc.h"
+#include "pdo_router.h"
 #include "platform.h"
 #include "poe_switcher.h"
 #include "prof.h"
 #include "ret_mem.h"
+#include "router.h"
 #include "rtc.h"
 #include "sock_cli.h"
 #include "sock_srv.h"
 #include "spi_common.h"
 
-extern uint32_t ir_min, ir_max;
+extern uint32_t test_v2, can_rx_msg;
 
-int gsts = -10;
+extern uint32_t ir_min, ir_max;
 
 #define SYSTICK_IN_US (168000000 / 1000000)
 #define SYSTICK_IN_MS (168000000 / 1000)
 
-#define NMT_CONTROL                  \
-	(CO_NMT_STARTUP_TO_OPERATIONAL | \
-	 CO_NMT_ERR_ON_ERR_REG |         \
-	 CO_NMT_ERR_ON_BUSOFF_HB |       \
-	 CO_ERR_REG_GENERIC_ERR |        \
+#define NMT_CONTROL                                                \
+	(CO_NMT_STARTUP_TO_OPERATIONAL | /*CO_NMT_ERR_ON_BUSOFF_HB |*/ \
+	 CO_ERR_REG_GENERIC_ERR |                                      \
 	 CO_ERR_REG_COMMUNICATION)
 
 bool g_stay_in_boot = false;
-uint8_t g_ip_address[4] = {192, 168, 0, 200};
-uint8_t g_ip_addr_master[4] = {0, 0, 0, 0};
-uint8_t g_ip_addr_gw[4 * GW_COUNT] = {0, 0, 0, 0};
-uint32_t g_mains_sns_chnl_bits = 0;
-uint32_t g_poe_sw_chnl_bits = 0;
+
+diag_t diag = {0};
+
+uint8_t g_cfg_ip_address[4] = {192, 168, 0, 200};
+uint8_t g_cfg_ip_addr_master[4] = {0, 0, 0, 0};
+uint8_t g_cfg_ip_addr_gw[4 * GW_COUNT] = {0, 0, 0, 0};
+uint32_t g_cfg_mains_sns_chnl_bits = 0;
+uint32_t g_cfg_poe_sw_chnl_bits = 0;
+bool g_cfg_i2c_remap = false;
 
 CO_t *CO = NULL;
 uint32_t g_uid[3];
 
-static uint8_t active_can_node_id = 1;	/* Copied from CO_pending_can_node_id in the communication reset section */
-static uint8_t pending_can_node_id = 1; /* read from dip switches or nonvolatile memory, configurable by LSS slave */
-uint16_t pending_can_baud = 500;		/* read from dip switches or nonvolatile memory, configurable by LSS slave */
+static uint8_t active_can_node_id = 1;		  /* Copied from CO_pending_can_node_id in the communication reset section */
+static uint8_t g_cfg_pending_can_node_id = 1; /* read from dip switches or nonvolatile memory, configurable by LSS slave */
+uint16_t g_cfg_pending_can_baud = 500;		  /* read from dip switches or nonvolatile memory, configurable by LSS slave */
 
 volatile uint64_t system_time = 0;
 volatile uint32_t sys_time_u32 = 0;
+struct
+{
+	uint32_t tick, td_us;
+} freq = {0};
+float sys_freq_1s = 0;
 
 static sock_cli_t sock_slv_mst = {0};
 static sock_cli_t sock_slv_gw[GW_COUNT] = {0};
@@ -69,18 +79,19 @@ static struct tcp_pcb sock_srv = {0};
 
 static int32_t prev_systick = 0;
 
-static CO_NMT_reset_cmd_t reset;
-static LSS_cb_obj_t lss_obj;
+static CO_NMT_reset_cmd_t reset = {0};
+static LSS_cb_obj_t lss_obj = {0};
 
 config_entry_t g_device_config[] = {
-	{"can_id", sizeof(pending_can_node_id), 0, &pending_can_node_id},
-	{"can_baud", sizeof(pending_can_baud), 0, &pending_can_baud},
+	{"can_id", sizeof(g_cfg_pending_can_node_id), 0, &g_cfg_pending_can_node_id},
+	{"can_baud", sizeof(g_cfg_pending_can_baud), 0, &g_cfg_pending_can_baud},
 	{"hb_prod_ms", sizeof(OD_PERSIST_COMM.x1017_producerHeartbeatTime), 0, &OD_PERSIST_COMM.x1017_producerHeartbeatTime},
-	{"ip", sizeof(g_ip_address), 0, &g_ip_address},
-	{"ip_mst", sizeof(g_ip_addr_master), 0, &g_ip_addr_master},
-	{"ip_gw", sizeof(g_ip_addr_gw), 0, &g_ip_addr_gw},
-	{"mains_chnls", sizeof(g_mains_sns_chnl_bits), 0, &g_mains_sns_chnl_bits},
-	{"poe_sw", sizeof(g_poe_sw_chnl_bits), 0, &g_poe_sw_chnl_bits},
+	{"ip", sizeof(g_cfg_ip_address), 0, &g_cfg_ip_address},
+	{"ip_mst", sizeof(g_cfg_ip_addr_master), 0, &g_cfg_ip_addr_master},
+	{"ip_gw", sizeof(g_cfg_ip_addr_gw), 0, &g_cfg_ip_addr_gw},
+	{"mains_chnls", sizeof(g_cfg_mains_sns_chnl_bits), 0, &g_cfg_mains_sns_chnl_bits},
+	{"poe_sw", sizeof(g_cfg_poe_sw_chnl_bits), 0, &g_cfg_poe_sw_chnl_bits},
+	{"i2c_remap", sizeof(g_cfg_i2c_remap), 0, &g_cfg_i2c_remap},
 };
 const uint32_t g_device_config_count = sizeof(g_device_config) / sizeof(g_device_config[0]);
 
@@ -117,7 +128,6 @@ static void end_loop(void)
 	platform_reset();
 }
 
-uint8_t buf[128];
 #undef BYTE_ORDER
 #undef LITTLE_ENDIAN
 #undef BIG_ENDIAN
@@ -156,12 +166,7 @@ __attribute__((noreturn)) void main(void)
 	prof_init();
 	platform_watchdog_init();
 
-	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA |
-							   RCC_AHB1Periph_GPIOB |
-							   RCC_AHB1Periph_GPIOC |
-							   RCC_AHB1Periph_GPIOD |
-							   RCC_AHB1Periph_GPIOE,
-						   ENABLE);
+	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOB | RCC_AHB1Periph_GPIOC | RCC_AHB1Periph_GPIOD | RCC_AHB1Periph_GPIOE, ENABLE);
 
 	GPIO_InitTypeDef GPIO_InitStruct = {0};
 	GPIO_InitStruct.GPIO_Pin = GPIO_Pin_4 | GPIO_Pin_5;
@@ -173,7 +178,7 @@ __attribute__((noreturn)) void main(void)
 	GPIO_InitStruct.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_1;
 	GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-	gsts = rtc_init();
+	diag.rtc_init_sts = rtc_init();
 
 	fw_header_check_all();
 
@@ -187,17 +192,12 @@ __attribute__((noreturn)) void main(void)
 	spi_common_init();
 	i2c_init();
 
-	aht21_init();
+	diag.aht21_init_sts = aht21_init();
 
-	fram_init();
-	int sts_fram = fram_check_sn();
-	if(sts_fram)
-	{
-		// #warning "AAAAAAAAAAAAAAAAA"
-	}
-	fram_data_read();
+	if((diag.fram_init_sts = fram_init()) == 0) fram_data_read();
 
-	if(config_validate() == CONFIG_STS_OK) config_read_storage();
+	diag.cfg_init_sts = config_validate();
+	if(diag.cfg_init_sts == CONFIG_STS_OK) config_read_storage();
 
 	poe_switcher_init();
 	mains_sense_init();
@@ -208,37 +208,32 @@ __attribute__((noreturn)) void main(void)
 	ethernetif_cfg_mac()[3] = (crc >> 16) & 0xFF;
 	ethernetif_cfg_mac()[4] = (crc >> 8) & 0xFF;
 	ethernetif_cfg_mac()[5] = crc & 0xFF;
-	LwIP_cfg_ip()[0] = g_ip_address[0];
-	LwIP_cfg_ip()[1] = g_ip_address[1];
-	LwIP_cfg_ip()[2] = g_ip_address[2];
-	LwIP_cfg_ip()[3] = g_ip_address[3];
+	LwIP_cfg_ip()[0] = g_cfg_ip_address[0];
+	LwIP_cfg_ip()[1] = g_cfg_ip_address[1];
+	LwIP_cfg_ip()[2] = g_cfg_ip_address[2];
+	LwIP_cfg_ip()[3] = g_cfg_ip_address[3];
 
 	LwIP_init();
-	console_udp_init();
-	tftpd_init();
-	sock_srv_init(&sock_srv, 5000);
+	diag.console_udp_init_sts = console_udp_init();
+	diag.tftpd_init_sts = tftpd_init();
+	diag.sock_srv_init_sts = sock_srv_init(&sock_srv, 5000);
 
-	if(g_ip_addr_master[0] != 0 ||
-	   g_ip_addr_master[1] != 0 ||
-	   g_ip_addr_master[2] != 0 ||
-	   g_ip_addr_master[3] != 0)
+	if(g_cfg_ip_addr_master[0] != 0 || g_cfg_ip_addr_master[1] != 0 || g_cfg_ip_addr_master[2] != 0 || g_cfg_ip_addr_master[3] != 0)
 	{
-		int sts = sock_cli_init(&sock_slv_mst, g_ip_addr_master, 5000);
+		int sts = sock_cli_init(&sock_slv_mst, g_cfg_ip_addr_master, 5000);
 		if(sts == 0) sock_cli_mst_ready = true;
 	}
+
 	for(uint32_t i = 0; i < GW_COUNT; i++)
 	{
-		if(g_ip_addr_gw[i * 4 + 0] != 0 ||
-		   g_ip_addr_gw[i * 4 + 1] != 0 ||
-		   g_ip_addr_gw[i * 4 + 2] != 0 ||
-		   g_ip_addr_gw[i * 4 + 3] != 0)
+		if(g_cfg_ip_addr_gw[i * 4 + 0] != 0 || g_cfg_ip_addr_gw[i * 4 + 1] != 0 || g_cfg_ip_addr_gw[i * 4 + 2] != 0 || g_cfg_ip_addr_gw[i * 4 + 3] != 0)
 		{
-			int sts = sock_cli_init(&sock_slv_gw[i], &g_ip_addr_gw[i * 4], 5000);
+			int sts = sock_cli_init(&sock_slv_gw[i], &g_cfg_ip_addr_gw[i * 4], 5000);
 			if(sts == 0) sock_cli_gw_ready[i] = true;
 		}
 	}
 
-	emeter_init();
+	emeter_init(fram_data.emeter_cnt);
 
 	can_drv_init(CAN1);
 
@@ -255,6 +250,9 @@ __attribute__((noreturn)) void main(void)
 	OD_PERSIST_COMM.x1018_identity.UID1 = g_uid[1];
 	OD_PERSIST_COMM.x1018_identity.UID2 = g_uid[2];
 
+	mqtt_app_init_client();
+	load_switcher_on();
+
 	for(;;)
 	{
 		lss_obj.lss_br_set_delay_counter = 0;
@@ -268,17 +266,17 @@ __attribute__((noreturn)) void main(void)
 
 			CO_CANsetConfigurationMode(CO->CANmodule->CANptr);
 			CO_CANmodule_disable(CO->CANmodule);
-			if(CO_CANinit(CO, CO->CANmodule->CANptr, pending_can_baud) != CO_ERROR_NO) end_loop();
+			if(CO_CANinit(CO, CO->CANmodule->CANptr, g_cfg_pending_can_baud) != CO_ERROR_NO) end_loop();
 
 			CO_LSS_address_t lssAddress = {.identity = {.vendorID = OD_PERSIST_COMM.x1018_identity.serialNumber,
 														.productCode = OD_PERSIST_COMM.x1018_identity.UID0,
 														.revisionNumber = OD_PERSIST_COMM.x1018_identity.UID1,
 														.serialNumber = OD_PERSIST_COMM.x1018_identity.UID2}};
 
-			if(CO_LSSinit(CO, &lssAddress, &pending_can_node_id, &pending_can_baud) != CO_ERROR_NO) end_loop();
+			if(CO_LSSinit(CO, &lssAddress, &g_cfg_pending_can_node_id, &g_cfg_pending_can_baud) != CO_ERROR_NO) end_loop();
 			lss_cb_init(&lss_obj);
 
-			active_can_node_id = pending_can_node_id;
+			active_can_node_id = g_cfg_pending_can_node_id;
 			uint32_t errInfo = 0;
 			CO_ReturnError_t err = CO_CANopenInit(CO,		   /* CANopen object */
 												  NULL,		   /* alternate NMT */
@@ -292,6 +290,8 @@ __attribute__((noreturn)) void main(void)
 												  false,	   /* SDOclientBlockTransfer */
 												  active_can_node_id,
 												  &errInfo);
+
+			CO->em->errorStatusBits = OD_RAM.x2000_errorBits;
 			if(err != CO_ERROR_NO && err != CO_ERROR_NODE_ID_UNCONFIGURED_LSS) end_loop();
 
 			err = CO_CANopenInitPDO(CO, CO->em, OD, active_can_node_id, &errInfo);
@@ -302,11 +302,10 @@ __attribute__((noreturn)) void main(void)
 			CO_EM_initCallbackRx(CO->em, co_emcy_rcv_cb);
 			CO_CANsetNormalMode(CO->CANmodule);
 			CO_driver_storage_error_report(CO->em);
+			pdo_switch_en_global(true);
 
 			reset = CO_RESET_NOT;
-
 			prof_mark(&prev_systick);
-
 			while(reset == CO_RESET_NOT)
 			{
 				// time diff
@@ -331,6 +330,14 @@ __attribute__((noreturn)) void main(void)
 				sys_time_u32 += diff_ms;
 				LwIP_periodic_handle(diff_ms);
 
+				freq.tick++;
+				freq.td_us += diff_us;
+				if(freq.td_us > 1000000)
+				{
+					sys_freq_1s = (float)freq.tick * 1000000.0f / (float)freq.td_us;
+					memset(&freq, 0, sizeof(freq));
+				}
+
 				static uint32_t difff = 0;
 				difff += diff_ms;
 				if(difff > 1500) difff = 0;
@@ -350,6 +357,7 @@ __attribute__((noreturn)) void main(void)
 				pc_poll(diff_ms);
 				emeter_poll(diff_ms);
 				mains_sense_poll(diff_ms);
+				router_poll(diff_ms);
 
 				static bool prev_mains_sw_0 = false;
 				if(prev_mains_sw_0 != mains_sense_is_on(0))
@@ -380,6 +388,7 @@ __attribute__((noreturn)) void main(void)
 					_PRINTF("FAULT! Load Switcher! %d\n", sts);
 				}
 
+				pdo_switch_poll();
 				poe_switcher_poll(diff_ms);
 				static bool prev_poe_sw_0 = false;
 				if(prev_poe_sw_0 != poe_switcher_is_on(0))
@@ -402,8 +411,24 @@ __attribute__((noreturn)) void main(void)
 				OD_RAM.x6200_sys_pwr_sensors.u_out = adc_val.vout;
 				OD_RAM.x6200_sys_pwr_sensors.i_load = adc_val.i_sns;
 				OD_RAM.x6200_sys_pwr_sensors.ir = adc_val.ir;
+
+				static uint32_t ct = 0, test_v = 0;
+				ct += diff_ms;
+				if(ct > 2000)
+				{
+					ct = 0;
+					test_v++;
+					char _buf[32];
+					snprintf(_buf, sizeof(_buf), "v=%ld/%ld", test_v, test_v2);
+
+					// mqtt_app_publish_message("test_topic/123", _buf);
+				}
 			}
+			pdo_switch_en_global(false);
+
+			diag.can.cnt_rst_comm++;
 		}
+		diag.can.cnt_rst_app++;
 
 		// PLATFORM_RESET:
 		// 	CO_CANsetConfigurationMode(CO->CANmodule->CANptr);
@@ -422,4 +447,17 @@ void lwip_assert(const char *s)
 {
 	lwip_assert_counter++;
 	_PRINTF("LWIP ASSRT %s\n", s);
+}
+
+void can_drv_rxed(can_msg_t *msg)
+{
+	can_rx_msg++;
+#define IN_RANGE(v, lo, hi) ((v) >= (lo) && v <= (hi))
+	if(msg->IDE == 0 && msg->RTR == 0 && msg->DLC)
+	{
+		if(IN_RANGE(msg->id.std, 0x180, 0x1FF)) router_add_pdo(msg, 0);
+		if(IN_RANGE(msg->id.std, 0x280, 0x2FF)) router_add_pdo(msg, 1);
+		if(IN_RANGE(msg->id.std, 0x380, 0x3FF)) router_add_pdo(msg, 2);
+		if(IN_RANGE(msg->id.std, 0x480, 0x4FF)) router_add_pdo(msg, 3);
+	}
 }

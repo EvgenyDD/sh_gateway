@@ -323,7 +323,7 @@ static bool_t checkNet(CO_GTWA_t *gtwa, int32_t net,
 
 #if (CO_CONFIG_GTW) & CO_CONFIG_GTW_ASCII_SDO
 /* data types for SDO read or write */
-static const CO_GTWA_dataType_t dataTypes[] = {
+const CO_GTWA_dataType_t dataTypes[20] = {
     {"hex", 0, CO_fifo_readHex2a, CO_fifo_cpyTok2Hex},  /* hex, non-standard */
     {"b",   1, CO_fifo_readU82a,  CO_fifo_cpyTok2U8},   /* BOOLEAN */
     {"i8",  1, CO_fifo_readI82a,  CO_fifo_cpyTok2I8},   /* INTEGER8 */
@@ -348,7 +348,7 @@ static const CO_GTWA_dataType_t dataTypes[] = {
 
 
 /* get data type from token */
-static const CO_GTWA_dataType_t *CO_GTWA_getDataType(char *token, bool_t *err) {
+const CO_GTWA_dataType_t *CO_GTWA_getDataType(char *token, bool_t *err, uint8_t *ptr_type) {
     if (token != NULL && *err == false) {
         int i;
         int len = sizeof(dataTypes) / sizeof(CO_GTWA_dataType_t);
@@ -356,6 +356,7 @@ static const CO_GTWA_dataType_t *CO_GTWA_getDataType(char *token, bool_t *err) {
         for (i = 0; i < len; i++) {
             const CO_GTWA_dataType_t *dt = &dataTypes[i];
             if (strcmp(token, dt->syntax) == 0) {
+                if(ptr_type) *ptr_type = i;
                 return dt;
             }
         }
@@ -886,7 +887,7 @@ void CO_GTWA_process(CO_GTWA_t *gtwa,
                 CO_fifo_readToken(&gtwa->commFifo, tok, sizeof(tok),
                                   &closed, &err);
                 convertToLower(tok, sizeof(tok));
-                gtwa->SDOdataType = CO_GTWA_getDataType(tok, &err);
+                gtwa->SDOdataType = CO_GTWA_getDataType(tok, &err, NULL);
                 if (err) break;
             }
             else {
@@ -953,7 +954,7 @@ void CO_GTWA_process(CO_GTWA_t *gtwa,
             CO_fifo_readToken(&gtwa->commFifo, tok, sizeof(tok),
                               &closed, &err);
             convertToLower(tok, sizeof(tok));
-            gtwa->SDOdataType = CO_GTWA_getDataType(tok, &err);
+            gtwa->SDOdataType = CO_GTWA_getDataType(tok, &err, NULL);
             if (err) break;
 
             /* setup client */

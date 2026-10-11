@@ -68,6 +68,14 @@ typedef struct
 	volatile uint16_t CANtxCount;
 	uint32_t errOld;
 	bool rx_ovf;
+
+	struct
+	{
+		bool is_bus_off;
+		uint8_t rx_err_cnt;
+		uint8_t tx_err_cnt;
+		uint32_t bus_off_err_cnt;
+	} diag;
 } CO_CANmodule_t;
 
 /* Data storage object for one entry */

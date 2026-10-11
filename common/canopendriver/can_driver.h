@@ -9,6 +9,20 @@
 #define CAN_FILT_NUM 28
 #define F_OSC_CAN 42000000
 
+typedef struct __attribute__((packed))
+{
+	union
+	{
+		uint32_t std;
+		uint32_t ext;
+	} id;
+	uint8_t IDE : 1;
+	uint8_t RTR : 1;
+	uint8_t DLC : 6;
+	uint8_t data[8];
+	uint16_t ts;
+} can_msg_t;
+
 void can_drv_init(CAN_TypeDef *dev);
 void can_drv_leave_init_mode(CAN_TypeDef *dev);
 void can_drv_enter_init_mode(CAN_TypeDef *dev);
@@ -19,8 +33,8 @@ void can_drv_set_rx_filter(CAN_TypeDef *dev, uint32_t filter, uint32_t id, uint3
 bool can_drv_check_rx_overrun(CAN_TypeDef *dev);
 bool can_drv_check_bus_off(CAN_TypeDef *dev);
 bool can_drv_is_rx_pending(CAN_TypeDef *dev);
-uint16_t can_drv_get_rx_error_counter(CAN_TypeDef *dev);
-uint16_t can_drv_get_tx_error_counter(CAN_TypeDef *dev);
+uint8_t can_drv_get_rx_error_counter(CAN_TypeDef *dev);
+uint8_t can_drv_get_tx_error_counter(CAN_TypeDef *dev);
 int can_drv_get_rx_filter_index(CAN_TypeDef *dev);
 uint32_t can_drv_get_rx_ident(CAN_TypeDef *dev);
 int can_drv_get_rx_dlc(CAN_TypeDef *dev);
@@ -31,5 +45,7 @@ bool can_drv_is_transmitting(CAN_TypeDef *dev);
 uint32_t can_drv_is_message_sent(CAN_TypeDef *dev);
 void can_drv_release_tx_message(CAN_TypeDef *dev, uint32_t mask);
 void can_drv_tx_abort(CAN_TypeDef *dev);
+
+extern void can_drv_rxed(can_msg_t *msg);
 
 #endif // CAN_DRIVER_H_

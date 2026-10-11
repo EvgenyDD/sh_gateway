@@ -50,3 +50,33 @@ void spi_trx(const uint8_t *data_tx, uint8_t *data_rx, uint32_t sz)
 	while(SPI_I2S_GetFlagStatus(SPI2, SPI_I2S_FLAG_BSY))
 		;
 }
+
+void spi_transmit(const uint8_t *data, uint32_t sz)
+{
+	for(uint32_t i = 0; i < sz; i++)
+	{
+		while(SPI_I2S_GetFlagStatus(SPI2, SPI_I2S_FLAG_TXE) == RESET)
+			;
+		SPI_I2S_SendData(SPI2, (uint16_t)data[i]);
+		while(SPI_I2S_GetFlagStatus(SPI2, SPI_I2S_FLAG_RXNE) == RESET)
+			;
+		(void)SPI_I2S_ReceiveData(SPI2);
+	}
+	while(SPI_I2S_GetFlagStatus(SPI2, SPI_I2S_FLAG_BSY) == SET)
+		;
+}
+
+void spi_receive(uint8_t *data, uint32_t sz)
+{
+	for(uint32_t i = 0; i < sz; i++)
+	{
+		while(SPI_I2S_GetFlagStatus(SPI2, SPI_I2S_FLAG_TXE) == RESET)
+			;
+		SPI_I2S_SendData(SPI2, 0);
+		while(SPI_I2S_GetFlagStatus(SPI2, SPI_I2S_FLAG_RXNE) == RESET)
+			;
+		data[i] = (uint8_t)SPI_I2S_ReceiveData(SPI2);
+	}
+	while(SPI_I2S_GetFlagStatus(SPI2, SPI_I2S_FLAG_BSY) == SET)
+		;
+}

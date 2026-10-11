@@ -1,7 +1,7 @@
 #include "mains_sense.h"
 #include "platform.h"
 
-extern uint32_t g_mains_sns_chnl_bits;
+extern uint32_t g_cfg_mains_sns_chnl_bits;
 
 #define NUM_CH 32
 
@@ -51,7 +51,7 @@ void mains_sense_init(void)
 
 	for(uint32_t i = 0; i < 32; i++)
 	{
-		if(g_mains_sns_chnl_bits & (1 << i))
+		if(g_cfg_mains_sns_chnl_bits & (1 << i))
 		{
 			if(pins_sns[i] && port_sns[i] && pins_ctrl[i] && port_ctrl[i])
 			{
@@ -77,7 +77,7 @@ void mains_sense_poll(uint32_t diff_ms)
 {
 	for(uint32_t i = 0; i < 32; i++)
 	{
-		if(g_mains_sns_chnl_bits & (1 << i))
+		if(g_cfg_mains_sns_chnl_bits & (1 << i))
 		{
 			if(inst[i].on_phase)
 			{

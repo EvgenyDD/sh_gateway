@@ -1,6 +1,8 @@
 #include "can_driver.h"
 #include <string.h>
 
+extern uint32_t can_tx_msg;
+
 #define _INAK_TIMEOUT ((uint32_t)0x00FFFFFF)
 
 void can_drv_init(CAN_TypeDef *dev)
@@ -151,8 +153,8 @@ bool can_drv_check_bus_off(CAN_TypeDef *dev)
 }
 
 bool can_drv_is_rx_pending(CAN_TypeDef *dev) { return ((dev->RF0R & CAN_RF0R_FMP0) > 0); }
-uint16_t can_drv_get_rx_error_counter(CAN_TypeDef *dev) { return CAN_GetReceiveErrorCounter(dev); }
-uint16_t can_drv_get_tx_error_counter(CAN_TypeDef *dev) { return CAN_GetLSBTransmitErrorCounter(dev); }
+uint8_t can_drv_get_rx_error_counter(CAN_TypeDef *dev) { return CAN_GetReceiveErrorCounter(dev); }
+uint8_t can_drv_get_tx_error_counter(CAN_TypeDef *dev) { return CAN_GetLSBTransmitErrorCounter(dev); }
 int can_drv_get_rx_filter_index(CAN_TypeDef *dev) { return (dev->sFIFOMailBox[0].RDTR >> 8) & 0xff; }
 uint32_t can_drv_get_rx_ident(CAN_TypeDef *dev) { return dev->sFIFOMailBox[0].RIR; }
 int can_drv_get_rx_dlc(CAN_TypeDef *dev) { return dev->sFIFOMailBox[0].RDTR & 0xff; }
@@ -174,6 +176,7 @@ void can_drv_release_rx_message(CAN_TypeDef *dev) { dev->RF0R = CAN_RF0R_RFOM0; 
 
 bool can_drv_tx(CAN_TypeDef *dev, uint32_t ident, uint8_t dlc, uint8_t *d)
 {
+	can_tx_msg++;
 	uint32_t txmb;
 	if((dev->TSR & CAN_TSR_TME0) == CAN_TSR_TME0)
 	{

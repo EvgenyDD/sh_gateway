@@ -23,6 +23,12 @@
 #define PIN_GET(x) !!(x##_GPIO_Port->IDR & x##_Pin)
 #define PIN_GET_ODR(x) !!(x##_GPIO_Port->ODR & x##_Pin)
 
+#define PIN_SET_(x, y) x->BSRR = (uint32_t)(y)
+#define PIN_CLR_(x, y) x->BSRR = ((uint32_t)(y)) << 16
+#define PIN_WR_(x, y, v) x->BSRR = ((uint32_t)(y)) << ((!(v)) * 16)
+#define PIN_GET_(x) !!(x->IDR & (y))
+#define PIN_GET_ODR_(x) !!(x->ODR & (y))
+
 #define UNIQUE_ID 0x1FFF7A10
 
 void platform_flash_erase_flag_reset(void);
@@ -54,11 +60,12 @@ extern int __cfg_start, __cfg_end;
 extern int __app_start, __app_end;
 extern int __header_offset;
 
-extern uint8_t g_ip_address[4];
-extern uint8_t g_ip_addr_master[4];
-extern uint8_t g_ip_addr_gw[4 * GW_COUNT];
+extern uint8_t g_cfg_ip_address[4];
+extern uint8_t g_cfg_ip_addr_master[4];
+extern uint8_t g_cfg_ip_addr_gw[4 * GW_COUNT];
 extern uint32_t g_uid[3];
 extern volatile uint64_t system_time;
-extern uint16_t pending_can_baud;
+extern float sys_freq_1s;
+extern uint16_t g_cfg_pending_can_baud;
 
 #endif // PLATFORM_H

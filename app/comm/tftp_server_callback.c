@@ -3,6 +3,7 @@
 #include "platform.h"
 #include "tftp_server.h"
 #include <string.h>
+#include "pdo_router.h"
 
 #undef BYTE_ORDER
 #undef LITTLE_ENDIAN
@@ -14,6 +15,7 @@ nd_fw_cb_t *g_nd_fw_cb;
 
 static int cb_wr_gw_ldr(uint32_t addr, const uint8_t *data, uint32_t size)
 {
+	pdo_switch_en_global(false);
 	if(addr != 0 && size == 0)
 	{
 		fw_header_check_all();
@@ -25,6 +27,7 @@ static int cb_wr_gw_ldr(uint32_t addr, const uint8_t *data, uint32_t size)
 
 static int gw_read(uint32_t fw_type, uint32_t start, uint32_t end, uint32_t addr, uint8_t *data, uint32_t size_buffer, uint32_t *size_read)
 {
+	pdo_switch_en_global(false);
 	if(g_fw_info[fw_type].locked == 0)
 	{
 		end = end - start > g_fw_info[fw_type].size ? start + g_fw_info[fw_type].size : end;

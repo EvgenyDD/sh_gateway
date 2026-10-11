@@ -14,9 +14,9 @@
         Project File: profile.xdd
         File Version: 1
 
-        Created:      23/11/2020 13:00:00
+        Created:      23.11.2020 14:00:00
         Created By:   
-        Modified:     03/03/2024 23:14:56
+        Modified:     02.10.2026 21:58:48
         Modified By:  
 
     Device Info:
@@ -55,6 +55,7 @@
 #define OD_CNT_ARR_1010 4
 #define OD_CNT_ARR_1011 4
 #define OD_CNT_ARR_1016 127
+#define OD_CNT_ARR_2000 10
 
 
 /*******************************************************************************
@@ -155,6 +156,8 @@ typedef struct {
         uint8_t highestSub_indexSupported;
         uint32_t error;
     } x1F57_flashStatusIdentification;
+    uint8_t x2000_errorBits_sub0;
+    uint8_t x2000_errorBits[OD_CNT_ARR_2000];
     struct {
         uint8_t highestSub_indexSupported;
         float32_t energy;
@@ -223,9 +226,10 @@ extern OD_ATTR_OD OD_t *OD;
 #define OD_ENTRY_H1F51 &OD->list[25]
 #define OD_ENTRY_H1F56 &OD->list[26]
 #define OD_ENTRY_H1F57 &OD->list[27]
-#define OD_ENTRY_H6000 &OD->list[28]
-#define OD_ENTRY_H6200 &OD->list[29]
-#define OD_ENTRY_H6201 &OD->list[30]
+#define OD_ENTRY_H2000 &OD->list[28]
+#define OD_ENTRY_H6000 &OD->list[29]
+#define OD_ENTRY_H6200 &OD->list[30]
+#define OD_ENTRY_H6201 &OD->list[31]
 
 
 /*******************************************************************************
@@ -259,9 +263,10 @@ extern OD_ATTR_OD OD_t *OD;
 #define OD_ENTRY_H1F51_programControl &OD->list[25]
 #define OD_ENTRY_H1F56_appSoftIdentification &OD->list[26]
 #define OD_ENTRY_H1F57_flashStatusIdentification &OD->list[27]
-#define OD_ENTRY_H6000_power &OD->list[28]
-#define OD_ENTRY_H6200_sys_pwr_sensors &OD->list[29]
-#define OD_ENTRY_H6201_th_sensors &OD->list[30]
+#define OD_ENTRY_H2000_errorBits &OD->list[28]
+#define OD_ENTRY_H6000_power &OD->list[29]
+#define OD_ENTRY_H6200_sys_pwr_sensors &OD->list[30]
+#define OD_ENTRY_H6201_th_sensors &OD->list[31]
 
 
 /*******************************************************************************

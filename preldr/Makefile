@@ -36,9 +36,13 @@ INCDIR += ../common/crc
 INCDIR += ../common/fw_header
 INCDIR += ../common/STM32F4xx_StdPeriph_Driver/inc
 
-SOURCES += $(call rwildcard, ../common/CMSIS ../common/crc ../common/fw_header ../common/STM32F4xx_StdPeriph_Driver, *.c *.S *.s)
-SOURCES += $(wildcard ../common/*.c)
 SOURCES += preldr.c
+
+SOURCES += ../common/CMSIS/startup_stm32f407xx.s
+SOURCES += $(wildcard ../common/*.c)
+SOURCES += $(wildcard ../common/crc/*.c)
+SOURCES += $(wildcard ../common/fw_header/*.c)
+SOURCES += $(wildcard ../common/STM32F4xx_StdPeriph_Driver/src/*.c)
 LDSCRIPT += ../ldscript/preldr.ld
 
 BINARY_SIGNED = $(BUILDDIR)/$(EXE_NAME)_signed.bin

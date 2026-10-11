@@ -152,6 +152,68 @@ static ODR_t OD_write_1005(OD_stream_t *stream, const void *buf,
     return OD_writeOriginal(stream, buf, count, countWritten);
 }
 
+
+void SYNC_write_1005(CO_SYNC_t *SYNC, uint32_t v)
+{
+    uint32_t cobIdSync = v;
+    uint16_t CAN_ID = (uint16_t)(cobIdSync & 0x7FF);
+
+    /* verify written value */
+#if (CO_CONFIG_SYNC) & CO_CONFIG_SYNC_PRODUCER
+    bool_t isProducer = (cobIdSync & 0x40000000) != 0;
+    if ((cobIdSync & 0xBFFFF800) != 0 || CO_IS_RESTRICTED_CAN_ID(CAN_ID)
+        || (SYNC->isProducer && isProducer && CAN_ID != SYNC->CAN_ID)
+    ) {
+        return ;
+    }
+#else
+    if ((cobIdSync & 0xFFFFF800) != 0 || CO_IS_RESTRICTED_CAN_ID(CAN_ID)) {
+        return ;
+    }
+#endif
+
+    /* Configure CAN receive and transmit buffers */
+    if (CAN_ID != SYNC->CAN_ID) {
+        CO_ReturnError_t CANret = CO_CANrxBufferInit(
+            SYNC->CANdevRx,     /* CAN device */
+            SYNC->CANdevRxIdx,  /* rx buffer index */
+            CAN_ID,             /* CAN identifier */
+            0x7FF,              /* mask */
+            0,                  /* rtr */
+            (void*)SYNC,        /* object passed to receive function */
+            CO_SYNC_receive);   /* this function will process received message*/
+
+        if (CANret != CO_ERROR_NO) {
+            return ;
+        }
+
+#if (CO_CONFIG_SYNC) & CO_CONFIG_SYNC_PRODUCER
+        SYNC->CANtxBuff = CO_CANtxBufferInit(
+            SYNC->CANdevTx,     /* CAN device */
+            SYNC->CANdevTxIdx,  /* index of specific buffer inside CAN module */
+            CAN_ID,             /* CAN identifier */
+            0,                  /* rtr */
+            SYNC->counterOverflowValue != 0 ? 1 : 0, /* number of data bytes */
+            0);                 /* synchronous message flag bit */
+
+        if (SYNC->CANtxBuff == NULL) {
+            SYNC->isProducer = false;
+            return ;
+        }
+#endif
+
+        SYNC->CAN_ID = CAN_ID;
+    }
+
+#if (CO_CONFIG_SYNC) & CO_CONFIG_SYNC_PRODUCER
+    SYNC->isProducer = isProducer;
+    if (isProducer) {
+        SYNC->counter = 0;
+        SYNC->timer = 0;
+    }
+#endif /* CO_CONFIG_SYNC) & CO_CONFIG_SYNC_PRODUCER */
+}
+
 #if (CO_CONFIG_SYNC) & CO_CONFIG_SYNC_PRODUCER
 /*
  * Custom function for writing OD object "Synchronous counter overflow value"

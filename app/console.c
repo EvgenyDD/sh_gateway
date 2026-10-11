@@ -1,6 +1,9 @@
 #include "CANopen.h"
 #include "CO_driver_app.h"
+#include "OD.h"
 #include "adc.h"
+#include "aht21.h"
+#include "app.h"
 #include "can_driver.h"
 #include "config_system.h"
 #include "emeter.h"
@@ -13,36 +16,43 @@
 #include "lss_helper.h"
 #include "lwip/stats.h"
 #include "mains_sense.h"
+#include "mqtt_app.h"
 #include "pc.h"
+#include "pdo_router.h"
 #include "platform.h"
 #include "poe_switcher.h"
 #include "ret_mem.h"
+#include "router.h"
 #include "rtc.h"
 #include "sdo.h"
 #include "sock_cli.h"
 #include <ctype.h>
 #include <string.h>
 
+extern uint32_t pdo_rx_cnt;
+extern uint32_t lwip_assert_counter;
+extern bool g_cfg_i2c_remap;
+
+extern uint32_t g_cfg_mains_sns_chnl_bits;
+extern uint32_t g_cfg_poe_sw_chnl_bits;
+
+extern CO_t *CO;
+
+uint32_t can_rx_msg = 0, can_tx_msg = 0;
+
 #undef BYTE_ORDER
 #undef LITTLE_ENDIAN
 #undef BIG_ENDIAN
 #include <stdio.h>
 
-extern int gsts;
-
-extern uint32_t lwip_assert_counter;
-
-extern uint32_t g_mains_sns_chnl_bits;
-extern uint32_t g_poe_sw_chnl_bits;
-
 uint32_t ir_min = 4095, ir_max = 0;
 
-extern CO_t *CO;
 #include "console_can.h"
 
 static void fw_cb(const char *arg, int l, int *ret)
 {
-	_PRINTF("Reset ldr: %s | app: %s\n", platform_reset_cause_get(ret_mem_get_rst_cause_ldr()), platform_reset_cause_get(ret_mem_get_rst_cause_app()));
+	_PRINT_PREFIX();
+	_PRINTF("\nReset ldr: %s | app: %s\n", platform_reset_cause_get(ret_mem_get_rst_cause_ldr()), platform_reset_cause_get(ret_mem_get_rst_cause_app()));
 	fw_header_check_all();
 	const char *p_build_ts = fw_fields_find_by_key_helper(&g_fw_info[FW_TYPE], "build_ts");
 	_PRINTF("%s %s : %ld.%ld.%ld : %s\n",
@@ -52,12 +62,43 @@ static void fw_cb(const char *arg, int l, int *ret)
 			g_fw_info[FW_APP].ver_minor,
 			g_fw_info[FW_APP].ver_patch,
 			p_build_ts ? p_build_ts : "");
-	_PRINTF("PRELDR: %d\n", g_fw_info[FW_PRELDR].locked);
-	_PRINTF("LDR   : %d\n", g_fw_info[FW_LDR].locked);
-	_PRINTF("APP   : %d\n", g_fw_info[FW_APP].locked);
+	_PRINTF("PRELDR: %d | @x%x %ld | %d fields\n", g_fw_info[FW_PRELDR].locked, g_fw_info[FW_PRELDR].addr, g_fw_info[FW_PRELDR].size, g_fw_info[FW_PRELDR].fields_count);
+	_PRINTF("LDR   : %d | @x%x %ld | %d fields\n", g_fw_info[FW_LDR].locked, g_fw_info[FW_LDR].addr, g_fw_info[FW_LDR].size, g_fw_info[FW_LDR].fields_count);
+	_PRINTF("APP   : %d | @x%x %ld | %d fields\n", g_fw_info[FW_APP].locked, g_fw_info[FW_APP].addr, g_fw_info[FW_APP].size, g_fw_info[FW_APP].fields_count);
 	_PRINTF("UID   : x%08lx.x%08lx.x%08lx\n", g_uid[0], g_uid[1], g_uid[2]);
 	_PRINTF("IP    : %d.%d.%d.%d\n", LwIP_cfg_ip()[0], LwIP_cfg_ip()[1], LwIP_cfg_ip()[2], LwIP_cfg_ip()[3]);
 	_PRINTF("MAC   : x%x:x%x:x%x:x%x:x%x:x%x\n", ethernetif_cfg_mac()[0], ethernetif_cfg_mac()[1], ethernetif_cfg_mac()[2], ethernetif_cfg_mac()[3], ethernetif_cfg_mac()[4], ethernetif_cfg_mac()[5]);
+	_PRINTF("Sys freq: %.2f Hz\n", sys_freq_1s);
+}
+
+static void can_cb(const char *arg, int l, int *ret)
+{
+	_PRINTF("RST COMM %d | APP %d\n", diag.can.cnt_rst_comm, diag.can.cnt_rst_app);
+	_PRINTF("NMT state: %d [%s]\n", CO_NMT_getInternalState(CO->NMT), nmt_state2str(CO_NMT_getInternalState(CO->NMT)));
+	_PRINTF("Err reg: x%x | Err status: x%x | BO %d (CNT %ld) | REC %d | TEC %d\n",
+			*CO->em->errorRegister,
+			CO->CANmodule->CANerrorStatus,
+			CO->CANmodule->diag.is_bus_off,
+			CO->CANmodule->diag.bus_off_err_cnt,
+			CO->CANmodule->diag.rx_err_cnt,
+			CO->CANmodule->diag.tx_err_cnt);
+	_PRINTF("x1005 x%lx | x1006 x%lx\n", OD_PERSIST_COMM.x1005_COB_ID_SYNCMessage, OD_PERSIST_COMM.x1006_communicationCyclePeriod);
+	_PRINTF("PDO (EN %d) RX %ld rx %ld tx %ld\n\t", pdo_switch_state(), pdo_rx_cnt, can_rx_msg, can_tx_msg);
+	can_hb_cb(arg, l, ret);
+}
+
+static void info_cb(const char *arg, int l, int *ret)
+{
+	_PRINTF("\taht21 %d\n", diag.aht21_init_sts);
+	_PRINTF("\tfram %d\n", diag.fram_init_sts);
+	_PRINTF("\trtc %d\n", diag.rtc_init_sts);
+	_PRINTF("\tcfg %d\n", diag.cfg_init_sts);
+	_PRINTF("\tconsole_udp %d\n", diag.console_udp_init_sts);
+	_PRINTF("\ttftpd %d\n", diag.tftpd_init_sts);
+	_PRINTF("\tsock_srv %d\n", diag.sock_srv_init_sts);
+
+	_PRINTF("energy %.3f | power %.3f | CNT %ld\n", emeter_get_energy_kwh(), emeter_get_power_kw(), emeter_get_cnt());
+	_PRINTF("AHT exist %d | temp %.2f | hum %.2f\n", aht21.exist, aht21.temp, aht21.hum);
 }
 
 static void reset_cb(const char *arg, int l, int *ret)
@@ -71,9 +112,7 @@ static void ip_cb(const char *arg, int l, int *ret)
 	int n = sscanf(arg, "%u.%u.%u.%u", &a, &b, &c, &d);
 
 	while(isspace((int)*arg) && (*arg != 0))
-	{
 		arg++;
-	}
 
 	if(!*arg)
 	{
@@ -88,12 +127,12 @@ static void ip_cb(const char *arg, int l, int *ret)
 		return;
 	}
 
-	g_ip_address[0] = a;
-	g_ip_address[1] = b;
-	g_ip_address[2] = c;
-	g_ip_address[3] = d;
+	g_cfg_ip_address[0] = a;
+	g_cfg_ip_address[1] = b;
+	g_cfg_ip_address[2] = c;
+	g_cfg_ip_address[3] = d;
 
-	_PRINTF("OK, New IP: %d.%d.%d.%d\n", g_ip_address[0], g_ip_address[1], g_ip_address[2], g_ip_address[3]);
+	_PRINTF("OK, New IP: %d.%d.%d.%d\n", g_cfg_ip_address[0], g_cfg_ip_address[1], g_cfg_ip_address[2], g_cfg_ip_address[3]);
 }
 
 static void sock_mst_ip_cb(const char *arg, int l, int *ret)
@@ -102,13 +141,11 @@ static void sock_mst_ip_cb(const char *arg, int l, int *ret)
 	int n = sscanf(arg, "%u.%u.%u.%u", &a, &b, &c, &d);
 
 	while(isspace((int)*arg) && (*arg != 0))
-	{
 		arg++;
-	}
 
 	if(!*arg)
 	{
-		_PRINTF("Current MASTER slv IP: %d.%d.%d.%d\n", g_ip_addr_master[0], g_ip_addr_master[1], g_ip_addr_master[2], g_ip_addr_master[3]);
+		_PRINTF("Current MASTER slv IP: %d.%d.%d.%d\n", g_cfg_ip_addr_master[0], g_cfg_ip_addr_master[1], g_cfg_ip_addr_master[2], g_cfg_ip_addr_master[3]);
 		return;
 	}
 
@@ -119,12 +156,12 @@ static void sock_mst_ip_cb(const char *arg, int l, int *ret)
 		return;
 	}
 
-	g_ip_addr_master[0] = a;
-	g_ip_addr_master[1] = b;
-	g_ip_addr_master[2] = c;
-	g_ip_addr_master[3] = d;
+	g_cfg_ip_addr_master[0] = a;
+	g_cfg_ip_addr_master[1] = b;
+	g_cfg_ip_addr_master[2] = c;
+	g_cfg_ip_addr_master[3] = d;
 
-	_PRINTF("OK, New IP: %d.%d.%d.%d\n", g_ip_addr_master[0], g_ip_addr_master[1], g_ip_addr_master[2], g_ip_addr_master[3]);
+	_PRINTF("OK, New IP: %d.%d.%d.%d\n", g_cfg_ip_addr_master[0], g_cfg_ip_addr_master[1], g_cfg_ip_addr_master[2], g_cfg_ip_addr_master[3]);
 }
 
 static void sock_gw_ip_cb(const char *arg, int l, int *ret)
@@ -133,16 +170,14 @@ static void sock_gw_ip_cb(const char *arg, int l, int *ret)
 	int n = sscanf(arg, "%u:%u.%u.%u.%u", &ptr, &a, &b, &c, &d);
 
 	while(isspace((int)*arg) && (*arg != 0))
-	{
 		arg++;
-	}
 
 	if(!*arg)
 	{
 		_PRINTF("Current GW slv IP:\n");
 		for(uint32_t i = 0; i < GW_COUNT; i++)
 		{
-			_PRINTF("\t%d.%d.%d.%d\n", g_ip_addr_gw[4 * i + 0], g_ip_addr_gw[4 * i + 1], g_ip_addr_gw[4 * i + 2], g_ip_addr_gw[4 * i + 3]);
+			_PRINTF("\t%d.%d.%d.%d\n", g_cfg_ip_addr_gw[4 * i + 0], g_cfg_ip_addr_gw[4 * i + 1], g_cfg_ip_addr_gw[4 * i + 2], g_cfg_ip_addr_gw[4 * i + 3]);
 		}
 	}
 
@@ -167,15 +202,15 @@ static void sock_gw_ip_cb(const char *arg, int l, int *ret)
 		return;
 	}
 
-	g_ip_addr_gw[4 * ptr + 0] = a;
-	g_ip_addr_gw[4 * ptr + 1] = b;
-	g_ip_addr_gw[4 * ptr + 2] = c;
-	g_ip_addr_gw[4 * ptr + 3] = d;
+	g_cfg_ip_addr_gw[4 * ptr + 0] = a;
+	g_cfg_ip_addr_gw[4 * ptr + 1] = b;
+	g_cfg_ip_addr_gw[4 * ptr + 2] = c;
+	g_cfg_ip_addr_gw[4 * ptr + 3] = d;
 
 	_PRINTF("OK, New GW slv IP:\n");
 	for(uint32_t i = 0; i < GW_COUNT; i++)
 	{
-		_PRINTF("\t%d.%d.%d.%d\n", g_ip_addr_gw[4 * i + 0], g_ip_addr_gw[4 * i + 1], g_ip_addr_gw[4 * i + 2], g_ip_addr_gw[4 * i + 3]);
+		_PRINTF("\t%d.%d.%d.%d\n", g_cfg_ip_addr_gw[4 * i + 0], g_cfg_ip_addr_gw[4 * i + 1], g_cfg_ip_addr_gw[4 * i + 2], g_cfg_ip_addr_gw[4 * i + 3]);
 	}
 }
 
@@ -203,7 +238,6 @@ static void read_cb(const char *arg, int l, int *ret)
 		_PRINTF("x%02x ", buffer[i]);
 		if((i % 16) == 15) _PRINTF("\n");
 	}
-	// _PRINTF("\n");
 }
 
 static void save_cb(const char *arg, int l, int *ret)
@@ -255,11 +289,6 @@ static void pc_cb(const char *arg, int l, int *ret)
 		_PRINTF("Switching PC\n");
 	}
 	_PRINTF("PC is %d\n", pc_is_on());
-}
-
-static void energy_cb(const char *arg, int l, int *ret)
-{
-	_PRINTF("Energy: %.3f | Power: %.3f\n", emeter_get_energy_kwh(), emeter_get_power_kw());
 }
 
 static void sli_cb(const char *arg, int l, int *ret)
@@ -316,6 +345,34 @@ static void timedate_cb(const char *req, int len, int *ret)
 			time.RTC_Hours, time.RTC_Minutes, time.RTC_Seconds);
 }
 
+static void i2c_remap_cb(const char *arg, int l, int *ret)
+{
+	unsigned int v;
+	int n = sscanf(arg, "%u", &v);
+	if(n == 1)
+	{
+		g_cfg_i2c_remap = v;
+		return;
+	}
+	_PRINTF("I2C Remap: %d\n", g_cfg_i2c_remap);
+}
+
+static void fram_cb(const char *arg, int l, int *ret)
+{
+#define FRAM_RD_QUANT 16
+	unsigned int v;
+	int n = sscanf(arg, "%u", &v);
+	if(n == 1)
+	{
+		uint8_t buf[FRAM_RD_QUANT];
+		int sts = fram_read(v, buf, FRAM_RD_QUANT);
+		_PRINTF("FRAM (sts %d) @x%x: ", sts, v);
+		for(uint32_t i = 0; i < FRAM_RD_QUANT; i++)
+			_PRINTF("%x ", buf[i]);
+		_PRINTF("\n");
+	}
+}
+
 static void co_gtw_cb(const char *arg, int l, int *ret)
 {
 	while(*arg == ' ')
@@ -343,8 +400,8 @@ static void cfg_mains_sns_cb(const char *arg, int l, int *ret)
 		_PRINTF("Wrong format! \"chnl en\"\n");
 		return;
 	}
-	if(ch < 32) BIT_WR(g_mains_sns_chnl_bits, ch, en);
-	_PRINTF("New Mains Sense mask: x%lx\n", g_mains_sns_chnl_bits);
+	if(ch < 32) BIT_WR(g_cfg_mains_sns_chnl_bits, ch, en);
+	_PRINTF("New Mains Sense mask: x%lx\n", g_cfg_mains_sns_chnl_bits);
 }
 
 static void cfg_poe_sw_cb(const char *arg, int l, int *ret)
@@ -356,9 +413,10 @@ static void cfg_poe_sw_cb(const char *arg, int l, int *ret)
 		_PRINTF("Wrong format! \"chnl en\"\n");
 		return;
 	}
-	if(ch < 32) BIT_WR(g_poe_sw_chnl_bits, ch, en);
-	_PRINTF("New POE Switch mask: x%lx\n", g_poe_sw_chnl_bits);
+	if(ch < 32) BIT_WR(g_cfg_poe_sw_chnl_bits, ch, en);
+	_PRINTF("New POE Switch mask: x%lx\n", g_cfg_poe_sw_chnl_bits);
 }
+
 static void poe_sw_cb(const char *arg, int l, int *ret)
 {
 	unsigned int ch = 0, en = 0;
@@ -395,8 +453,29 @@ static void mains_rst_cb(const char *arg, int l, int *ret)
 	ir_min = 4095;
 }
 
+static void mqtt_sts_cb(const char *arg, int l, int *ret)
+{
+	_PRINTF("sts: %d | conn: %d | cnt: %d\n", mqtt_dbg.status, mqtt_dbg.conn_code, mqtt_dbg.conn_cb_cnt);
+	_PRINTF("TX Q OVF: %ld | Err publ: %ld\n", mqtt_dbg.tx_q_ovf, mqtt_dbg.err_publ);
+}
+
+static void route_cb(const char *arg, int l, int *ret)
+{
+	if(l > 1)
+	{
+		int sts = router_add_entry(arg);
+		_PRINTF("sts: %d \n", sts);
+	}
+	else
+	{
+		router_print();
+	}
+}
+
 const console_cmd_t console_cmd[] = {
 	{"fw", fw_cb},
+	{"info", info_cb},
+	{"can", can_cb},
 	{"reset", reset_cb},
 	{"read", read_cb},
 	{"save", save_cb},
@@ -407,6 +486,8 @@ const console_cmd_t console_cmd[] = {
 	{"adc", adc_cb},
 	{"pc", pc_cb},
 	{"time", timedate_cb},
+	{"i2c_remap", i2c_remap_cb},
+	{"fram", fram_cb},
 
 	{"sock_mst_ip", sock_mst_ip_cb},
 	{"sock_gw_ip", sock_gw_ip_cb},
@@ -427,7 +508,6 @@ const console_cmd_t console_cmd[] = {
 
 	{"cmeteo", can_meteo_cb},
 
-	{"energy", energy_cb},
 	// {"cli", cli_cb},
 	{"sli", sli_cb},
 
@@ -438,6 +518,9 @@ const console_cmd_t console_cmd[] = {
 	{"poe_sw", poe_sw_cb},
 	{"mg", mains_get_cb},
 	{"mr", mains_rst_cb},
+
+	{"mqtt", mqtt_sts_cb},
+	{"route", route_cb},
 };
 
 const uint32_t console_cmd_sz = sizeof(console_cmd) / sizeof(console_cmd[0]);

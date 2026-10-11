@@ -72,7 +72,7 @@ static void cb_udp_console(void *arg, struct udp_pcb *udp, struct pbuf *p, const
 	{
 		data = prev_request;
 		len_req = prev_request_len;
-		if(prev_request[0] != '\n' && prev_request[0] != '\0') _PRINTF(">");
+		if(prev_request[0] != '\n' && prev_request[0] != '\0') _PRINTF(">\n");
 	}
 	else
 	{
