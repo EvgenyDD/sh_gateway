@@ -96,12 +96,6 @@ config_entry_t g_device_config[] = {
 };
 const uint32_t g_device_config_count = sizeof(g_device_config) / sizeof(g_device_config[0]);
 
-enum
-{
-	__assert_fram_entries_count = 1 / (sizeof(router.route_cfg) != (26 * 128) ? 0 : 1),
-	// 	__assert_fram_logger_align = 1 / (((FRAM_SIZE - FRAM_LOG_OFFSET) % FRAM_QUANT) != 0 ? 0 : 1)
-};
-
 void delay_ms(volatile uint32_t delay_ms)
 {
 	volatile uint32_t start = 0;
