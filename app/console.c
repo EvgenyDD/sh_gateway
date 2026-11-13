@@ -75,13 +75,14 @@ static void can_cb(const char *arg, int l, int *ret)
 {
 	_PRINTF("RST COMM %d | APP %d\n", diag.can.cnt_rst_comm, diag.can.cnt_rst_app);
 	_PRINTF("NMT state: %d [%s]\n", CO_NMT_getInternalState(CO->NMT), nmt_state2str(CO_NMT_getInternalState(CO->NMT)));
-	_PRINTF("Err reg: x%x | Err status: x%x | BO %d (CNT %ld) | REC %d | TEC %d\n",
+	_PRINTF("Err reg: x%x | Err status: x%x | BO %d (CNT %ld) | REC %d | TEC %d | RX OVR %ld\n",
 			*CO->em->errorRegister,
 			CO->CANmodule->CANerrorStatus,
 			CO->CANmodule->diag.is_bus_off,
 			CO->CANmodule->diag.bus_off_err_cnt,
 			CO->CANmodule->diag.rx_err_cnt,
-			CO->CANmodule->diag.tx_err_cnt);
+			CO->CANmodule->diag.tx_err_cnt,
+			CO->CANmodule->diag.rx_overrun_cnt);
 	_PRINTF("x1005 x%lx | x1006 x%lx\n", OD_PERSIST_COMM.x1005_COB_ID_SYNCMessage, OD_PERSIST_COMM.x1006_communicationCyclePeriod);
 	_PRINTF("PDO (EN %d) RX %ld rx %ld tx %ld\n\t", pdo_switch_state(), pdo_rx_cnt, can_rx_msg, can_tx_msg);
 	can_hb_cb(arg, l, ret);
@@ -398,6 +399,7 @@ static void cfg_mains_sns_cb(const char *arg, int l, int *ret)
 	if(n != 2)
 	{
 		_PRINTF("Wrong format! \"chnl en\"\n");
+		_PRINTF("Mains Sense mask: x%lx\n", g_cfg_mains_sns_chnl_bits);
 		return;
 	}
 	if(ch < 32) BIT_WR(g_cfg_mains_sns_chnl_bits, ch, en);
@@ -463,8 +465,16 @@ static void route_cb(const char *arg, int l, int *ret)
 {
 	if(l > 1)
 	{
-		int sts = router_add_entry(arg);
-		_PRINTF("sts: %d \n", sts);
+		if(strstr(arg, "erase_all") != NULL)
+		{
+			router_clear_cfg();
+			_PRINTF("ERASED!\n");
+		}
+		else
+		{
+			int sts = router_add_entry(arg);
+			_PRINTF("sts: %d \n", sts);
+		}
 	}
 	else
 	{

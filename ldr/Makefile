@@ -140,6 +140,17 @@ define tftp_flash
 	@atftp --verbose -p -r sh_gw_ldr -l $(2) 192.168.0.$(1)
 endef
 
+define atftp_flash7
+	@atftp --verbose -p -r sh_gw_ldr -l $(2) 7.7.7.$(1)
+endef
+
+10: $(BINARY_SIGNED)
+	$(call atftp_flash7,$@,$<)
+11: $(BINARY_SIGNED)
+	$(call atftp_flash7,$@,$<)
+12: $(BINARY_SIGNED)
+	$(call atftp_flash7,$@,$<)
+
 101: $(BINARY_SIGNED)
 	$(call tftp_flash,$@,$<)
 102: $(BINARY_SIGNED)

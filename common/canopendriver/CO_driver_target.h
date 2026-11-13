@@ -75,6 +75,7 @@ typedef struct
 		uint8_t rx_err_cnt;
 		uint8_t tx_err_cnt;
 		uint32_t bus_off_err_cnt;
+		uint32_t rx_overrun_cnt;
 	} diag;
 } CO_CANmodule_t;
 

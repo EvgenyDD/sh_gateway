@@ -297,7 +297,11 @@ void CO_CANinterrupt(CO_CANmodule_t *CANmodule)
 	{
 		bool_t msgMatched = false;
 
-		if(can_drv_check_rx_overrun(dev)) return;
+		if(can_drv_check_rx_overrun(dev))
+		{
+			CANmodule->diag.rx_overrun_cnt++;
+			return;
+		}
 
 		int index = can_drv_get_rx_filter_index(dev); /* get index of the received message here. Or something similar */
 
@@ -376,9 +380,5 @@ void CO_CANinterrupt(CO_CANmodule_t *CANmodule)
 				CANmodule->CANtxCount = 0U;
 			}
 		}
-	}
-	else
-	{
-		// some other interrupt reason
 	}
 }

@@ -41,12 +41,13 @@ typedef enum
 	CONFIG_STS_LENGTH_DATA_ZERO,
 	CONFIG_STS_PARSER_NOT_FINISHED,
 	CONFIG_STS_NO_DATA,
+	CONFIG_STS_ERR_INTERNAL,
 } config_sts_t;
 
 #define CONFIG_MAX_KEY_SIZE 32
 
-#define CFG_ORIGIN ((uint32_t) & __cfg_start)
-#define CFG_END ((uint32_t) & __cfg_end)
+#define CFG_ORIGIN ((uint32_t)&__cfg_start)
+#define CFG_END ((uint32_t)&__cfg_end)
 #define CFG_SIZE (CFG_END - CFG_ORIGIN)
 
 config_sts_t config_write_storage(void);

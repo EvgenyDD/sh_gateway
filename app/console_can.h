@@ -179,6 +179,7 @@ static void sdo_rd_cb(const char *arg, int l, int *ret)
 		uint8_t data[256];
 		CO_SDO_abortCode_t sts = read_SDO(CO->SDOclient, id, idx, current_sub, data, sizeof(data), &rd, 3000);
 		_PRINTF(" | Status: x%x (%zu): ", sts, rd);
+		if(sts || rd == 0) _PRINTF("\n");
 
 		for(uint32_t i = 0; i < rd * (sts ? 0 : 1); i++)
 		{
@@ -281,7 +282,7 @@ static void can_role_cb(const char *arg, int l, int *ret)
 			if(CO->HBcons->monitoredNodes[nd].HBstate != CO_HBconsumer_UNKNOWN)
 			{
 				id = CO->HBcons->monitoredNodes[nd].nodeId;
-				size_t rd = sizeof(uint32_t);
+				size_t rd = sizeof(prod_id);
 				CO_SDO_abortCode_t sts = read_SDO(CO->SDOclient, id, 0x1F58, 0, prod_id, sizeof(prod_id), &rd, 800);
 				if(sts != 0)
 				{

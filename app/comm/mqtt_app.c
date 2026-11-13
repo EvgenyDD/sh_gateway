@@ -50,6 +50,18 @@ static void mqtt_pub_request_cb(void *arg, err_t result)
 
 static int mqtt_queue_send_next(void)
 {
+	if(static_client == NULL || !mqtt_client_is_connected(static_client))
+	{
+		mq.is_sending = false;
+		return -1;
+	}
+
+	if(mq.head == mq.tail)
+	{
+		mq.is_sending = false;
+		return 0;
+	}
+
 	mq.is_sending = true;
 	mqtt_msg_t *msg = &mq.storage[mq.tail];
 	err_t err = mqtt_publish(static_client, msg->topic, msg->payload, msg->payload_len,
@@ -57,11 +69,8 @@ static int mqtt_queue_send_next(void)
 
 	if(err != ERR_OK)
 	{
-		// Если lwIP сразу вернул ошибку буфера (ERR_MEM), сбрасываем флаг отправки,
-		// чтобы следующая попытка (или цикл) могла протолкнуть очередь.
 		mq.is_sending = false;
 		mqtt_dbg.err_publ++;
-		// Опционально: обработка ошибки (например, сдвиг хвоста, если сообщение "битое")
 		return -1;
 	}
 	return 0;
@@ -97,13 +106,16 @@ static void conn_cb(mqtt_client_t *client, void *arg, mqtt_connection_status_t s
 	if(status == MQTT_CONNECT_ACCEPTED)
 	{
 		mqtt_dbg.status = STATE_CONNECTED;
-		mqtt_set_inpub_callback(client, incom_publ_cb, incom_data_cb, arg); // Настройка колбэков для приема сообщений (нужно делать сразу при коннекте)
-		mqtt_subscribe(client, "stm32/cmd", 0, NULL, NULL);					// Подписываемся на топик для ПРИЕМА команд (QoS 0)
+		mqtt_set_inpub_callback(client, incom_publ_cb, incom_data_cb, arg);
+		mqtt_subscribe(client, "stm32/cmd", 0, NULL, NULL);
+
+		if(mq.head != mq.tail && !mq.is_sending) mqtt_queue_send_next();
 	}
 	else
 	{
 		mqtt_dbg.status = STATE_CONN_RETRY;
-		sys_untimeout(reconnect_cb, NULL);			   // Удаляем старый таймер, если он вдруг был запущен, чтобы не плодить их
+		mq.is_sending = false;
+		sys_untimeout(reconnect_cb, NULL);
 		sys_timeout(RECONN_TO_MS, reconnect_cb, NULL); // try again later
 	}
 }
@@ -154,6 +166,7 @@ void mqtt_app_init_client(void)
 	if(static_client != NULL)
 	{
 		mqtt_disconnect(static_client);
+		mqtt_client_free(static_client);
 		static_client = NULL;
 	}
 
@@ -165,13 +178,14 @@ void mqtt_app_init_client(void)
 		snprintf(mqtt_client_id_buffer, sizeof(mqtt_client_id_buffer), "GW_%d.%d.%d.%d", g_cfg_ip_address[0], g_cfg_ip_address[1], g_cfg_ip_address[2], g_cfg_ip_address[3]);
 
 		ci.client_id = mqtt_client_id_buffer;
-		ci.keep_alive = 60;	   // Пинг-таймаут в секундах
-		ci.client_user = NULL; // Анонимно
-		ci.client_pass = NULL; // Анонимно
+		ci.keep_alive = 10;
+		ci.client_user = NULL;
+		ci.client_pass = NULL;
 
 		int sts = mqtt_client_connect(static_client, &broker_ip, 1883, conn_cb, NULL, &ci);
 		if(sts != ERR_OK)
 		{
+			sys_untimeout(reconnect_cb, NULL);
 			sys_timeout(RECONN_TO_MS, reconnect_cb, NULL); // try again later
 		}
 		mqtt_dbg.conn_code = sts;
@@ -179,6 +193,7 @@ void mqtt_app_init_client(void)
 	else
 	{
 		mqtt_dbg.status = STATE_OUT_OF_MEM;
+		sys_untimeout(reconnect_cb, NULL);
 		sys_timeout(RECONN_TO_MS, reconnect_cb, NULL); // try again later
 	}
 }

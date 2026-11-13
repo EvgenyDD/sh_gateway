@@ -59,9 +59,9 @@ bool g_cfg_i2c_remap = false;
 CO_t *CO = NULL;
 uint32_t g_uid[3];
 
-static uint8_t active_can_node_id = 1;		  /* Copied from CO_pending_can_node_id in the communication reset section */
-static uint8_t g_cfg_pending_can_node_id = 1; /* read from dip switches or nonvolatile memory, configurable by LSS slave */
-uint16_t g_cfg_pending_can_baud = 500;		  /* read from dip switches or nonvolatile memory, configurable by LSS slave */
+static uint8_t active_can_node_id = 1; /* Copied from CO_pending_can_node_id in the communication reset section */
+uint8_t g_cfg_pending_can_node_id = 1; /* read from dip switches or nonvolatile memory, configurable by LSS slave */
+uint16_t g_cfg_pending_can_baud = 500; /* read from dip switches or nonvolatile memory, configurable by LSS slave */
 
 volatile uint64_t system_time = 0;
 volatile uint32_t sys_time_u32 = 0;
@@ -92,8 +92,15 @@ config_entry_t g_device_config[] = {
 	{"mains_chnls", sizeof(g_cfg_mains_sns_chnl_bits), 0, &g_cfg_mains_sns_chnl_bits},
 	{"poe_sw", sizeof(g_cfg_poe_sw_chnl_bits), 0, &g_cfg_poe_sw_chnl_bits},
 	{"i2c_remap", sizeof(g_cfg_i2c_remap), 0, &g_cfg_i2c_remap},
+	{"mqtt_cfg", sizeof(router.route_cfg), 0, router.route_cfg},
 };
 const uint32_t g_device_config_count = sizeof(g_device_config) / sizeof(g_device_config[0]);
+
+enum
+{
+	__assert_fram_entries_count = 1 / (sizeof(router.route_cfg) != (26 * 128) ? 0 : 1),
+	// 	__assert_fram_logger_align = 1 / (((FRAM_SIZE - FRAM_LOG_OFFSET) % FRAM_QUANT) != 0 ? 0 : 1)
+};
 
 void delay_ms(volatile uint32_t delay_ms)
 {
@@ -252,6 +259,7 @@ __attribute__((noreturn)) void main(void)
 
 	mqtt_app_init_client();
 	load_switcher_on();
+	router_init();
 
 	for(;;)
 	{
@@ -355,7 +363,21 @@ __attribute__((noreturn)) void main(void)
 
 				adc_track();
 				pc_poll(diff_ms);
-				emeter_poll(diff_ms);
+				if(emeter_poll(diff_ms))
+				{
+					can_msg_t m1 = {0}, m2 = {0};
+					m1.id.std = m2.id.std = active_can_node_id;
+					float f32[2] = {emeter_get_power_kw() * 1000.0f, emeter_get_energy_kwh()};
+					uint32_t cnt = emeter_get_cnt();
+					m1.DLC = 8;
+					m2.DLC = 4;
+					memcpy(&m1.data[0], &f32[0], 4);
+					memcpy(&m1.data[4], &f32[1], 4);
+					memcpy(&m2.data[0], &cnt, 4);
+
+					router_add_pdo(&m1, 0);
+					router_add_pdo(&m2, 1);
+				}
 				mains_sense_poll(diff_ms);
 				router_poll(diff_ms);
 

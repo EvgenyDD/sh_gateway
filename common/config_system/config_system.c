@@ -3,6 +3,9 @@
 #include "platform.h"
 #include <string.h>
 
+extern uint8_t __sccmram;
+extern uint8_t __eccmram;
+
 __attribute__((weak)) void config_entry_not_found_callback(const uint8_t *key, uint32_t data_offset, uint16_t data_length) {}
 
 #define CFG_WRITE_ALIGN 4
@@ -114,7 +117,7 @@ config_sts_t config_write_storage(void)
 			if(sts) return sts;
 		}
 
-		sts = flush_data_calc_crc(0, count_zeros, false);
+		sts = flush_data_calc_crc(NULL, count_zeros, false);
 		if(sts) return sts;
 
 		uint32_t crc32_val = crc32_end(flush_buffer, flush_buffer_size);
@@ -141,12 +144,13 @@ config_sts_t config_write_storage(void)
 
 		uint32_t old_data_size;
 		platform_flash_read(CFG_ORIGIN, (uint8_t *)&old_data_size, sizeof(old_data_size));
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wvla"
-		uint8_t buf_old_data[4 + old_data_size];
-#pragma GCC diagnostic pop
-		memset(buf_old_data, 0, sizeof(buf_old_data)); // erase buffer
-		if(4 + old_data_size <= sizeof(buf_old_data))
+
+		uint8_t *buf_old_data = (uint8_t *)&__sccmram;
+		const size_t ccmram_size = (size_t)(&__eccmram - &__sccmram);
+		if(4 + old_data_size > ccmram_size) return CONFIG_STS_ERR_INTERNAL;
+
+		memset(buf_old_data, 0, ccmram_size); // erase buffer
+		if(4 + old_data_size <= ccmram_size)
 		{
 			platform_flash_read(CFG_ORIGIN, buf_old_data, 4 + old_data_size); // copy old config to buffer
 		}
@@ -241,7 +245,7 @@ config_sts_t config_write_storage(void)
 			if(sts) return sts;
 		}
 
-		sts = flush_data_calc_crc(0, count_zeros, false);
+		sts = flush_data_calc_crc(NULL, count_zeros, false);
 		if(sts) return sts;
 
 		uint32_t crc32_val = crc32_end(flush_buffer, flush_buffer_size);
@@ -299,7 +303,7 @@ static config_sts_t parse_data(const uint32_t offset_data, const uint8_t *data, 
 			if(parser.offset_entry_data + parser.length_data == offset_data + i + 1) // entry is ready!
 			{
 				parser.sts = PROCESS_FINISH;
-				if(find_entry(&parser, parser.offset_entry_data) == false) config_entry_not_found_callback(parser.name_buffer, parser.offset_entry_data, parser.length_size);
+				if(find_entry(&parser, parser.offset_entry_data) == false) config_entry_not_found_callback(parser.name_buffer, parser.offset_entry_data, parser.length_data);
 				memset(&parser, 0, sizeof(parser));
 			}
 			break;
@@ -329,7 +333,7 @@ config_sts_t config_validate(void)
 	const uint32_t end_data = 4 + size_config;
 
 	if(size_config < (8) /* minimal data */ ||
-	   size_config > 4 + CFG_SIZE + 4 ||
+	   size_config > CFG_SIZE - 8 ||
 	   (size_config & 0x03U) /* not the multiple of 4 */) return CONFIG_STS_WRONG_SIZE_CONFIG;
 
 	uint32_t crc_calc = 0;

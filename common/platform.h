@@ -67,5 +67,6 @@ extern uint32_t g_uid[3];
 extern volatile uint64_t system_time;
 extern float sys_freq_1s;
 extern uint16_t g_cfg_pending_can_baud;
+extern uint8_t g_cfg_pending_can_node_id;
 
 #endif // PLATFORM_H

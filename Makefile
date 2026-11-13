@@ -189,6 +189,14 @@ define atftp_flash
 	@echo reset | nc -u 7.7.7.$(1) 2000 -q 0
 endef
 
+define atftp_flash_192
+	@echo reset | nc -u 192.168.0.$(1) 2000 -q 0
+	@sleep 2.0
+	@echo help | nc -u 192.168.0.$(1) 2000 -q 0
+	@atftp --verbose -p -r sh_gw_app -l $(2) 192.168.0.$(1)
+	@echo reset | nc -u 192.168.0.$(1) 2000 -q 0
+endef
+
 define tftp_flash
 	@powershell -Command "(New-Object System.Net.Sockets.UdpClient).'Send'([System.Text.Encoding]::ASCII.'GetBytes'('reset'), 5, '7.7.7.$(1)', 2000)"
 	@sleep 0.1
@@ -197,7 +205,7 @@ define tftp_flash
 	@powershell -Command "(New-Object System.Net.Sockets.UdpClient).'Send'([System.Text.Encoding]::ASCII.'GetBytes'('reset'), 5, '7.7.7.$(1)', 2000)"
 endef
 
-define tftp_flash_192
+define tftp_flash_w192
 	@powershell -Command "(New-Object System.Net.Sockets.UdpClient).'Send'([System.Text.Encoding]::ASCII.'GetBytes'('reset'), 5, '192.168.0.$(1)', 2000)"
 	@sleep 0.1
 	curl -T $(2) tftp://192.168.0.$(1)/sh_gw_app
@@ -211,6 +219,8 @@ endef
 	$(call atftp_flash,11,$<)
 12: $(BINARY_SIGNED)
 	$(call atftp_flash,12,$<)
+200: $(BINARY_SIGNED)
+	$(call atftp_flash_192,$@,$<)
 
 w10: $(BINARY_SIGNED)
 	$(call tftp_flash,10,$<)
@@ -220,4 +230,4 @@ w12: $(BINARY_SIGNED)
 	$(call tftp_flash,12,$<)
 
 w200: $(BINARY_SIGNED)
-	$(call tftp_flash_192,200,$<)
+	$(call tftp_flash_w192,200,$<)

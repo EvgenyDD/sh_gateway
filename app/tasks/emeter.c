@@ -45,9 +45,9 @@ void emeter_init(uint32_t pulse_acc_old)
 	}
 }
 
-void emeter_poll(uint32_t diff_ms)
+bool emeter_poll(uint32_t diff_ms)
 {
-	if(diff_ms == 0) return;
+	if(diff_ms == 0) return 0;
 	last_pulse_timestamp += diff_ms;
 
 	static bool prev_on = false, out_st = false;
@@ -102,6 +102,7 @@ void emeter_poll(uint32_t diff_ms)
 	if(out_st && pulse_deb_tim > DEBOUNCE_TIME_MS) out_st = false;
 
 	static bool prev_out_st = false;
+	bool is_upd = false;
 	if(prev_out_st == false && out_st)
 	{
 		pulse_acc++;
@@ -112,6 +113,7 @@ void emeter_poll(uint32_t diff_ms)
 
 		power_now = em_pulse_tim == 0 ? 0 : 1 / (PWR_SCALE * (float)em_pulse_tim * 0.001f / 3600.0f);
 		em_pulse_tim = 0;
+		is_upd = true;
 	}
 	prev_out_st = out_st;
 
@@ -121,6 +123,7 @@ void emeter_poll(uint32_t diff_ms)
 
 	debounce_update(&deb_light_on, baseline_level < BASELINE_DARK, diff_ms);
 	light_enabled = deb_light_on.state == TRIG_SET;
+	return is_upd;
 }
 
 uint32_t emeter_get_cnt(void) { return pulse_acc; }

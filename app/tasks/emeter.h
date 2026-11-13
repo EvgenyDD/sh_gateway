@@ -1,10 +1,11 @@
 #ifndef EMETER_H__
 #define EMETER_H__
 
+#include <stdbool.h>
 #include <stdint.h>
 
 void emeter_init(uint32_t pulse_acc_old);
-void emeter_poll(uint32_t diff_ms);
+bool emeter_poll(uint32_t diff_ms);
 
 uint32_t emeter_get_cnt(void);
 float emeter_get_power_kw(void);
